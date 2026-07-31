@@ -16,19 +16,6 @@ CV Builder is a local desktop application for creating a structured CV and expor
 - Export a ready-to-share PDF
 - Fully offline operation
 
-The redesign rationale, component rules, technical specification, and
-implementation plan are documented in [`DESIGN_SPEC.md`](DESIGN_SPEC.md).
-Краткая инструкция по установке, сборке и использованию на русском языке:
-[`QUICK_START_RU.md`](QUICK_START_RU.md).
-Отдельная инструкция по Windows-сборке:
-[`BUILD_WINDOWS_RU.md`](BUILD_WINDOWS_RU.md).
-Настройка автоматической сборки через GitHub Actions:
-[`GITHUB_ACTIONS_RU.md`](GITHUB_ACTIONS_RU.md).
-Базовая архитектура для будущих desktop-приложений:
-[`DESKTOP_APP_ARCHITECTURE.md`](DESKTOP_APP_ARCHITECTURE.md).
-Исходники персонального плагина для создания и упаковки иконок:
-[`codex-plugins/app-icon-studio`](codex-plugins/app-icon-studio).
-
 ## Local CV library
 
 CVs are stored automatically as readable JSON files in the platform-native
@@ -132,4 +119,4 @@ All CV data remains on the user's computer. The application has no analytics, ac
 
 ## License
 
-MIT. See `LICENSE`.
+PolyForm Noncommercial License 1.0.0. See `LICENSE`.

@@ -1,44 +1,47 @@
-# Базовая архитектура локального desktop-приложения
+# Base architecture for a local desktop application
 
-## 1. Назначение документа
+## 1. Purpose of this document
 
-Этот документ обобщает архитектуру CV Builder в reusable-шаблон для небольших
-и средних локальных desktop-приложений на Python. Он подходит для продуктов,
-которые:
+This document generalizes the CV Builder architecture into a reusable template
+for small and medium local desktop applications in Python. It fits products
+that:
 
-- работают на macOS и Windows;
-- используют формы, локальную библиотеку документов и экспорт;
-- не требуют backend или учетной записи;
-- должны собираться в DMG и Windows Setup EXE;
-- развиваются кодинг-агентом совместно с владельцем продукта.
+- run on macOS and Windows;
+- use forms, a local document library, and export;
+- do not require a backend or an account;
+- must be packaged as a DMG and a Windows Setup EXE;
+- are evolved by a coding agent together with the product owner.
 
-Архитектура сохраняет простоту текущего приложения, но разделяет UI, данные,
-хранилище, экспорт и packaging так, чтобы следующий проект не вырос в один
-неуправляемый файл.
+The architecture keeps the current app's simplicity but separates UI, data,
+storage, export, and packaging so the next project doesn't grow into a single
+unmanageable file.
 
-## 2. Архитектурные принципы
+## 2. Architectural principles
 
-1. **Local-first:** пользовательские данные принадлежат пользователю и по
-   умолчанию не покидают устройство.
-2. **Offline by default:** основные сценарии не зависят от сети.
-3. **Portable data:** основной формат должен быть читаемым и экспортируемым.
-4. **Atomic persistence:** запись через временный файл и `replace`, чтобы сбой
-   не повреждал документ.
-5. **Layered boundaries:** UI не должен знать детали файловой системы и PDF.
-6. **One source of truth:** форма отражает один нормализованный domain document.
-7. **Deterministic packaging:** иконки, версии и установщики создаются скриптами.
-8. **Real-artifact verification:** проверять `.app`, DMG и EXE, а не только
-   исходники.
-9. **Progressive complexity:** не добавлять базу данных, DI-фреймворк или
-   backend до появления реальной необходимости.
-10. **Cross-platform from day one:** пути, цвета, шрифты и shortcuts должны
-    проектироваться для macOS и Windows.
+1. **Local-first:** user data belongs to the user and does not leave the
+   device by default.
+2. **Offline by default:** core scenarios do not depend on the network.
+3. **Portable data:** the primary format must be readable and exportable.
+4. **Atomic persistence:** write via a temp file and `replace`, so a failure
+   does not corrupt the document.
+5. **Layered boundaries:** the UI must not know the details of the filesystem
+   or PDF generation.
+6. **One source of truth:** the form reflects a single normalized domain
+   document.
+7. **Deterministic packaging:** icons, versions, and installers are produced
+   by scripts.
+8. **Real-artifact verification:** verify the `.app`, DMG, and EXE, not just
+   the source.
+9. **Progressive complexity:** don't add a database, a DI framework, or a
+   backend before there's a real need.
+10. **Cross-platform from day one:** paths, colors, fonts, and shortcuts must
+    be designed for macOS and Windows.
 
-## 3. Высокоуровневая схема
+## 3. High-level diagram
 
 ```mermaid
 flowchart LR
-    User["Пользователь"] --> UI["Presentation / UI"]
+    User["User"] --> UI["Presentation / UI"]
     UI --> App["Application services"]
     App --> Domain["Domain model + validation"]
     App --> Storage["Local repository"]
@@ -52,22 +55,23 @@ flowchart LR
     Export --> Build
 ```
 
-### Слои
+### Layers
 
-| Слой | Ответственность | Текущий пример |
+| Layer | Responsibility | Current example |
 |---|---|---|
-| Presentation | окна, навигация, формы, feedback | `app.py`, CustomTkinter |
-| Application | use cases, autosave, import/export orchestration | методы `CVBuilderApp` |
+| Presentation | windows, navigation, forms, feedback | `app.py`, CustomTkinter |
+| Application | use cases, autosave, import/export orchestration | `CVBuilderApp` methods |
 | Domain | schema, defaults, normalization, validation | `cv_model.py` |
-| Infrastructure | локальная библиотека и platform paths | `cv_library.py` |
-| Output adapters | PDF/CSV/другие форматы | `pdf_generator.py` |
-| Packaging | иконки, metadata, installers, signing | `CVBuilder.spec`, scripts |
-| Quality | unit, smoke и screenshot checks | `tests/`, `tools/` |
+| Infrastructure | local library and platform paths | `cv_library.py` |
+| Output adapters | PDF/CSV/other formats | `pdf_generator.py` |
+| Packaging | icons, metadata, installers, signing | `CVBuilder.spec`, scripts |
+| Quality | unit, smoke, and screenshot checks | `tests/`, `tools/` |
 
-## 4. Рекомендуемая структура будущего проекта
+## 4. Recommended structure for a future project
 
-Для небольшого прототипа допустимы четыре текущих Python-файла. После появления
-третьего сложного экрана или нескольких use cases рекомендуется структура:
+For a small prototype, four current Python files are acceptable. Once a
+third complex screen or several use cases appear, the following structure is
+recommended:
 
 ```text
 desktop_app/
@@ -113,24 +117,25 @@ desktop_app/
 └── build_windows.ps1
 ```
 
-### Когда разделять текущий `app.py`
+### When to split the current `app.py`
 
-Разделить его, когда выполняется хотя бы одно условие:
+Split it when at least one of these conditions holds:
 
-- файл превышает примерно 800–1000 строк;
-- UI-класс содержит persistence и export logic;
-- экран можно тестировать только через запуск всего приложения;
-- добавляется второй тип документа;
-- появляется несколько окон или независимых workflows.
+- the file exceeds roughly 800-1000 lines;
+- the UI class contains persistence and export logic;
+- a screen can only be tested by launching the whole application;
+- a second document type is being added;
+- several windows or independent workflows appear.
 
-Следующий шаг для CV Builder — вынести screens/components и application
-services, оставив root-классу только composition, navigation и lifecycle.
+The next step for CV Builder is to extract screens/components and
+application services, leaving the root class with only composition,
+navigation, and lifecycle.
 
-## 5. Domain model и данные
+## 5. Domain model and data
 
-### Базовый контракт
+### Base contract
 
-Определить один нормализованный dictionary/dataclass:
+Define a single normalized dictionary/dataclass:
 
 ```text
 Document
@@ -139,56 +144,56 @@ Document
 └── repeatable entries[]
 ```
 
-Для каждого документа иметь:
+Each document should have:
 
-- `new_document()` — пустой объект без placeholder-данных;
-- `example_document()` — отдельный редактируемый пример;
-- `normalize_document()` — заполнение optional keys и удаление неизвестных;
-- `load_document()` и `save_document()` — UTF-8 и atomic write;
-- `schema_version` — рекомендуется добавить в будущих приложениях.
+- `new_document()` — an empty object with no placeholder data;
+- `example_document()` — a separate editable sample;
+- `normalize_document()` — fills in optional keys and drops unknown ones;
+- `load_document()` and `save_document()` — UTF-8 and atomic write;
+- `schema_version` — recommended to add in future applications.
 
-Placeholder обязан быть UI-состоянием, а не значением domain model.
+Placeholders must be UI state, not a value in the domain model.
 
-### Миграции
+### Migrations
 
-При изменении схемы:
+When the schema changes:
 
-1. прочитать `schema_version`;
-2. последовательно применить migrations;
-3. нормализовать результат;
-4. сохранить только после успешной миграции;
-5. оставить portable export совместимым или явно версионировать формат.
+1. read `schema_version`;
+2. apply migrations sequentially;
+3. normalize the result;
+4. save only after a successful migration;
+5. keep portable export compatible or explicitly version the format.
 
-### Хранилище
+### Storage
 
-Использовать platform-native application data directory:
+Use the platform-native application data directory:
 
 - macOS: `~/Library/Application Support/<App>/`;
 - Windows: `%APPDATA%\<App>\`;
 - Linux: `$XDG_DATA_HOME/<app>/`.
 
-Repository должен предоставлять use cases, а не пути:
+The repository should expose use cases, not paths:
 
 ```text
 list / create / load / save / rename / delete / import
 ```
 
-Индекс библиотеки хранит metadata, документы — отдельные JSON-файлы. Это
-упрощает backup, восстановление и ручную диагностику.
+The library index stores metadata; documents are separate JSON files. This
+simplifies backup, recovery, and manual diagnostics.
 
 ## 6. Application layer
 
-Application service координирует:
+The application service coordinates:
 
-- создание и открытие документа;
-- переход между документами;
+- creating and opening a document;
+- switching between documents;
 - autosave;
 - import/export;
-- подтверждение destructive actions;
-- обновление progress/status;
+- confirming destructive actions;
+- updating progress/status;
 - graceful shutdown.
 
-Рекомендуемый state:
+Recommended state:
 
 ```text
 current_document_id
@@ -199,24 +204,24 @@ save_status
 pending_autosave_job
 ```
 
-Autosave выполнять с debounce 500–1000 мс. При смене документа, возврате в
-library и закрытии приложения вызывать immediate save.
+Run autosave with a 500-1000 ms debounce. Trigger an immediate save when
+switching documents, returning to the library, and closing the application.
 
-UI не должен напрямую писать JSON или создавать PDF. Он вызывает service и
-отображает результат.
+The UI must not write JSON or generate a PDF directly. It calls the service
+and displays the result.
 
-## 7. UI-архитектура
+## 7. UI architecture
 
-### Стек
+### Stack
 
 - Python 3.12;
-- Tk/Tkinter 8.6+; рекомендуется Tk 9.0;
+- Tk/Tkinter 8.6+; Tk 9.0 recommended;
 - CustomTkinter 5.2+;
-- системные file dialogs и message boxes.
+- native file dialogs and message boxes.
 
-Tk создает native window/event loop. Tkinter является Python bridge, а
-CustomTkinter предоставляет стилизованные widgets. В готовой PyInstaller
-сборке runtime Tk должен быть bundled; конечный пользователь его не ставит.
+Tk creates the native window/event loop. Tkinter is the Python bridge, and
+CustomTkinter provides styled widgets. In a packaged PyInstaller build, the
+Tk runtime must be bundled; the end user does not install it separately.
 
 ### Composition
 
@@ -232,57 +237,58 @@ Root window
         └── Inline editor
 ```
 
-Переключать постоянные screens через `tkraise`, а не пересоздавать root window.
-Повторяемые cards можно пересоздавать из state.
+Switch persistent screens with `tkraise` rather than recreating the root
+window. Repeatable cards can be recreated from state.
 
 ### UI state rules
 
-- placeholder не попадает в collected data;
-- одна primary action на экран;
-- status сообщает `Saving`, `Saved`, `Failed`, `Exported`;
-- destructive action требует подтверждения;
-- scrollbar показывается только при необходимости;
-- длинный editor имеет фиксированные Save/Cancel actions;
-- размеры и цвета задаются design tokens;
-- UI проверяется реальными screenshots, а не только HTML-макетом.
+- placeholders never end up in collected data;
+- one primary action per screen;
+- status communicates `Saving`, `Saved`, `Failed`, `Exported`;
+- destructive actions require confirmation;
+- a scrollbar is shown only when needed;
+- a long editor has fixed Save/Cancel actions;
+- sizes and colors are defined by design tokens;
+- the UI is verified with real screenshots, not just an HTML mockup.
 
-### Accessibility и internationalization
+### Accessibility and internationalization
 
-Для будущих приложений заранее определить:
+For future applications, define upfront:
 
-- keyboard navigation и focus order;
-- контраст и minimum control size;
-- масштабирование шрифтов;
-- язык интерфейса и формат дат;
-- screen-reader ограничения выбранного toolkit.
+- keyboard navigation and focus order;
+- contrast and minimum control size;
+- font scaling;
+- interface language and date format;
+- screen-reader limitations of the chosen toolkit.
 
-Строки UI желательно вынести из widgets до добавления второго языка.
+UI strings should be extracted from widgets before a second language is
+added.
 
 ## 8. Export adapters
 
-Каждый exporter получает нормализованный domain document и output path:
+Each exporter receives a normalized domain document and an output path:
 
 ```python
 export(document, destination)
 ```
 
-Exporter не читает widgets и не изменяет repository.
+An exporter does not read widgets and does not modify the repository.
 
-Для PDF:
+For PDF:
 
-- экранировать пользовательский markup;
-- разрешать bundled и system font fallback;
-- учитывать `_MEIPASS` в PyInstaller;
-- тестировать multi-page output и Unicode;
-- проверять magic bytes и минимальный размер файла.
+- escape user-supplied markup;
+- allow bundled and system font fallback;
+- account for `_MEIPASS` in PyInstaller;
+- test multi-page output and Unicode;
+- verify magic bytes and minimum file size.
 
-ReportLab подходит для детерминированного документного PDF. Для visual-preview
-или HTML-like layout можно рассмотреть web renderer, но только после оценки
-размера bundle и platform consistency.
+ReportLab is suitable for a deterministic document-style PDF. For a
+visual-preview or HTML-like layout, a web renderer can be considered, but
+only after evaluating bundle size and platform consistency.
 
-## 9. Стек и зависимости
+## 9. Stack and dependencies
 
-| Задача | Инструмент |
+| Task | Tool |
 |---|---|
 | Runtime | Python 3.12 |
 | GUI | Tk 9.0 / Tkinter / CustomTkinter |
@@ -290,7 +296,7 @@ ReportLab подходит для детерминированного доку�
 | Image processing | Pillow |
 | Data | JSON + pathlib |
 | Unit tests | pytest |
-| UI smoke | Tk automation + диагностический JSON |
+| UI smoke | Tk automation + diagnostic JSON |
 | Screenshot QA | platform window capture |
 | macOS bundle | PyInstaller + spec |
 | macOS installer | codesign + hdiutil |
@@ -302,32 +308,33 @@ ReportLab подходит для детерминированного доку�
 
 ### Runtime vs build dependencies
 
-`requirements.txt` содержит только то, что нужно приложению. Отдельный
-`requirements-build.txt` включает PyInstaller, pytest, Pillow и packaging
-utilities. Конечному пользователю Python и зависимости не нужны.
+`requirements.txt` contains only what the application needs. A separate
+`requirements-build.txt` includes PyInstaller, pytest, Pillow, and packaging
+utilities. The end user needs neither Python nor these dependencies.
 
-## 10. Обязательные build utilities
+## 10. Required build utilities
 
-1. **Icon builder:** source PNG → optical PNGs, iconset, ICNS и ICO.
-2. **Unit tests:** domain, repository, migrations и exporters.
-3. **UI smoke:** открыть root, пройти основные screens, закрыть без ввода.
-4. **Screenshot capture:** сохранить реальные implementation screens.
-5. **Bundle smoke:** запустить frozen app с временным repository.
-6. **Metadata verifier:** проверить version, architecture, icon и hashes.
-7. **Release workflow:** собрать arm64 macOS, Intel macOS и Windows x64.
+1. **Icon builder:** source PNG → optical PNGs, iconset, ICNS, and ICO.
+2. **Unit tests:** domain, repository, migrations, and exporters.
+3. **UI smoke:** open the root window, walk through the main screens, close
+   without input.
+4. **Screenshot capture:** save real implementation screens.
+5. **Bundle smoke:** run the frozen app with a temporary repository.
+6. **Metadata verifier:** check version, architecture, icon, and hashes.
+7. **Release workflow:** build arm64 macOS, Intel macOS, and Windows x64.
 
-Утилиты должны завершаться non-zero exit code при ошибке и не полагаться на
-ручную проверку логов.
+Utilities must exit with a non-zero code on failure and must not rely on
+manual log inspection.
 
-## 11. Сборка macOS
+## 11. macOS build
 
-### Требования разработчика
+### Developer requirements
 
-- Python 3.12 с Tk 8.6+;
+- Python 3.12 with Tk 8.6+;
 - PyInstaller;
 - Xcode Command Line Tools;
 - `codesign`, `hdiutil`;
-- для публичной раздачи: Apple Developer Program.
+- for public distribution: Apple Developer Program.
 
 ### Pipeline
 
@@ -344,21 +351,21 @@ tests
 → checksum
 ```
 
-Локальный bundle наследует архитектуру Python/машины. Для arm64 и Intel нужны
-отдельные runners или universal2 strategy.
+A local bundle inherits the Python/machine architecture. Separate runners or
+a universal2 strategy are needed for arm64 and Intel.
 
-Не использовать системный Apple Python/Tk 8.5: он может создать приложение с
-пустым окном на современной macOS.
+Do not use the system Apple Python/Tk 8.5: it can produce an app with a
+blank window on modern macOS.
 
-## 12. Сборка Windows
+## 12. Windows build
 
-### Требования разработчика
+### Developer requirements
 
 - Windows 10/11 x64;
 - Python 3.12 x64;
 - PyInstaller;
 - Inno Setup 6;
-- Windows SDK только для подписи.
+- Windows SDK only for signing.
 
 ### Pipeline
 
@@ -374,164 +381,171 @@ tests
 → checksum
 ```
 
-Иконку подключать и к EXE, и к Setup. Версию синхронизировать между macOS spec,
-Windows version info и Inno Setup.
+Attach the icon to both the EXE and the Setup. Keep the version in sync
+across the macOS spec, the Windows version info, and Inno Setup.
 
 ## 13. CI/CD
 
-Workflow должен:
+The workflow should:
 
-- находиться в `.github/workflows/` в корне repository;
-- иметь manual `workflow_dispatch`;
-- собираться по release tags;
-- использовать explicit read-only permissions;
-- запускать tests до packaging;
-- завершаться ошибкой, если artifact отсутствует;
-- сохранять platform-specific filenames;
-- получать сертификаты только через encrypted secrets.
+- live in `.github/workflows/` at the root of the repository;
+- have a manual `workflow_dispatch`;
+- build on release tags;
+- use explicit read-only permissions;
+- run tests before packaging;
+- fail if an artifact is missing;
+- keep platform-specific filenames;
+- obtain certificates only via encrypted secrets.
 
-Рекомендуется добавить единый файл версии и генерировать platform metadata,
-чтобы не изменять три файла вручную.
+It's recommended to add a single version file and generate platform metadata
+so three files don't need to be edited by hand.
 
-## 14. Вопросы, которые кодинг-агент должен задать
+## 14. Questions the coding agent should ask
 
-### Блокирующие до реализации
+### Blocking before implementation
 
-1. Какую одну задачу решает приложение и для кого?
-2. Какие target OS и architectures обязательны?
-3. Приложение распространяется публично или только внутри команды?
-4. Нужны ли code signing и notarization?
-5. Где должны храниться пользовательские данные?
-6. Можно ли отправлять данные в сеть?
-7. Какой portable import/export contract обязателен?
-8. Какие действия destructive и как они восстанавливаются?
-9. Какие форматы output являются частью продукта?
-10. Есть ли утвержденные screenshots/design spec/brand assets?
+1. What single problem does the application solve, and for whom?
+2. Which target OSes and architectures are required?
+3. Is the application distributed publicly or only within the team?
+4. Are code signing and notarization needed?
+5. Where should user data be stored?
+6. Can data be sent over the network?
+7. What portable import/export contract is required?
+8. Which actions are destructive, and how are they recovered?
+9. Which output formats are part of the product?
+10. Are there approved screenshots/design spec/brand assets?
 
-### До проектирования UI
+### Before designing the UI
 
-1. Какие основные screens и переходы?
-2. Что является primary action на каждом screen?
-3. Какие поля обязательны?
-4. Нужны ли multiple documents и library?
-5. Как работает autosave и что видит пользователь при ошибке?
-6. Какие empty/loading/error states нужны?
-7. Нужны ли keyboard shortcuts, accessibility и localization?
-8. Как приложение ведет себя при маленьком окне?
+1. What are the main screens and transitions?
+2. What is the primary action on each screen?
+3. Which fields are required?
+4. Are multiple documents and a library needed?
+5. How does autosave work, and what does the user see on error?
+6. Which empty/loading/error states are needed?
+7. Are keyboard shortcuts, accessibility, and localization needed?
+8. How does the application behave with a small window?
 
-### До packaging
+### Before packaging
 
-1. Какие версии и build numbers выпускаются?
-2. Нужны ли Apple Silicon, Intel и Windows x64 одновременно?
-3. Какие bundle identifier, publisher и installer identity?
-4. Подготовлены ли ICNS/ICO и optical sizes?
-5. Где находятся сертификаты и кто управляет secrets?
-6. Что именно будет передаваться пользователю?
-7. Как проверяется clean-machine install?
+1. Which versions and build numbers are released?
+2. Are Apple Silicon, Intel, and Windows x64 needed simultaneously?
+3. What are the bundle identifier, publisher, and installer identity?
+4. Are ICNS/ICO and optical sizes prepared?
+5. Where are the certificates, and who manages the secrets?
+6. What exactly gets handed to the user?
+7. How is a clean-machine install verified?
 
-### Не блокирующие — можно принять default
+### Non-blocking — a default can be accepted
 
-- точный оттенок secondary surface;
+- the exact shade of a secondary surface;
 - minor animation timing;
-- необязательные shortcuts;
-- имя временной build directory;
-- retention CI-artifacts.
+- optional shortcuts;
+- the name of the temporary build directory;
+- CI artifact retention.
 
-Агент должен задавать вопрос только тогда, когда ответ меняет архитектуру,
-данные, distribution или необратимое действие.
+The agent should ask a question only when the answer changes the
+architecture, the data, distribution, or an irreversible action.
 
-## 15. Выученные уроки
+## 15. Lessons learned
 
-### UI и данные
+### UI and data
 
-1. Placeholder нельзя хранить как field value — пользователю приходится его
-   удалять, а пример может случайно попасть в PDF.
-2. Ручной Save As JSON не заменяет application-managed library.
-3. Autosave должен быть фоновым и видимым через status.
-4. JSON одновременно полезен как storage, backup и integration contract.
-5. Реальная верстка должна сравниваться с design spec по screenshots.
-6. Модальный editor разрушает контекст; inline editor лучше для последовательной
-   формы.
+1. A placeholder must not be stored as a field value — the user would have
+   to delete it, and the sample could accidentally end up in the PDF.
+2. Manual Save As JSON does not replace an application-managed library.
+3. Autosave must run in the background and be visible via status.
+4. JSON is useful simultaneously as storage, backup, and an integration
+   contract.
+5. The real layout must be compared against the design spec via screenshots.
+6. A modal editor breaks context; an inline editor is better for a
+   sequential form.
 
-### Сборка
+### Build
 
-1. Старый UI в DMG обычно означает stale artifact, неверный source entrypoint
-   или неполную clean-сборку.
-2. После build нужно проверять содержимое `.app` и DMG, а не timestamp source.
-3. Tk 8.5 может дать белое окно; build script обязан проверять Tk version.
-4. Локальный macOS build не создает Intel-версию на Apple Silicon автоматически.
-5. Ad-hoc signature подходит для локального теста, но не заменяет Developer ID
-   и notarization.
-6. Windows требует отдельные ICO и version resources.
-7. `iconutil` может отклонять корректные PNG; deterministic ICNS writer надежнее.
-8. Desktop icon cache требует version/build bump и clean reinstall.
-9. `.github/workflows` должен находиться в корне Git repository.
-10. Широкое правило `.gitignore` может случайно исключить обязательный spec.
+1. Stale UI in the DMG usually means a stale artifact, the wrong source
+   entrypoint, or an incomplete clean build.
+2. After a build, check the contents of the `.app` and DMG, not the source
+   timestamp.
+3. Tk 8.5 can produce a blank window; the build script must check the Tk
+   version.
+4. A local macOS build does not automatically produce an Intel version on
+   Apple Silicon.
+5. An ad-hoc signature is fine for a local test but does not replace
+   Developer ID and notarization.
+6. Windows requires separate ICO and version resources.
+7. `iconutil` can reject valid PNGs; a deterministic ICNS writer is more
+   reliable.
+8. The desktop icon cache requires a version/build bump and a clean
+   reinstall.
+9. `.github/workflows` must be at the root of the Git repository.
+10. A broad `.gitignore` rule can accidentally exclude a required spec file.
 
-### Иконка
+### Icon
 
-1. Качество 1024 px не гарантирует качество 32 px.
-2. Избыточные стеклянные кромки превращаются в blur.
-3. Упрощение не должно уничтожать выбранный material style.
-4. Optical masters лучше одного универсального downscale.
-5. Иконку нужно проверять внутри bundle и installer по hash.
+1. Quality at 1024 px does not guarantee quality at 32 px.
+2. Excessive glass edges turn into blur.
+3. Simplification must not destroy the chosen material style.
+4. Optical masters are better than a single universal downscale.
+5. The icon must be verified inside the bundle and installer by hash.
 
-### Работа агента
+### Agent workflow
 
-1. Сначала инспектировать реальные файлы, screenshots и packaging scripts.
-2. Отделять diagnosis от implementation.
-3. Не заменять выбранный дизайн до визуального подтверждения.
-4. Делать reversible versioned assets.
-5. После каждой material change запускать пропорциональную проверку.
-6. Документировать найденные environment prerequisites.
+1. Inspect the real files, screenshots, and packaging scripts first.
+2. Separate diagnosis from implementation.
+3. Do not replace a chosen design without visual confirmation.
+4. Produce reversible, versioned assets.
+5. Run a proportional check after each material change.
+6. Document any environment prerequisites discovered.
 
 ## 16. Quality gates
 
-### До merge
+### Before merge
 
-- unit tests проходят;
-- schema normalization покрыта тестами;
-- autosave не сохраняет placeholder;
-- import/export round trip работает;
-- PDF smoke работает;
-- UI smoke открывает все основные screens;
-- screenshots проверены на target OS;
-- required packaging files не исключены `.gitignore`.
+- unit tests pass;
+- schema normalization is covered by tests;
+- autosave does not save placeholders;
+- import/export round trip works;
+- PDF smoke works;
+- UI smoke opens all main screens;
+- screenshots are verified on the target OS;
+- required packaging files are not excluded by `.gitignore`.
 
-### До релиза
+### Before release
 
-- версия синхронизирована;
-- arm64, Intel и Windows artifacts собраны;
-- иконки и metadata проверены внутри packages;
-- signatures валидны;
-- macOS notarization/staple успешны;
-- install, first launch, save, reopen, export и uninstall проверены;
-- checksums опубликованы;
-- пользователям передаются только DMG/EXE.
+- version is in sync;
+- arm64, Intel, and Windows artifacts are built;
+- icons and metadata are verified inside the packages;
+- signatures are valid;
+- macOS notarization/staple succeed;
+- install, first launch, save, reopen, export, and uninstall are verified;
+- checksums are published;
+- users receive only the DMG/EXE.
 
-## 17. Definition of Done для будущего приложения
+## 17. Definition of Done for a future application
 
-Приложение готово, когда:
+The application is done when:
 
-1. основной пользовательский workflow завершается без ручной работы с
-   внутренними файлами;
-2. данные сохраняются атомарно и восстанавливаются после перезапуска;
-3. portable export/import документирован;
-4. UI соответствует implementation screenshots;
-5. tests и smoke checks проходят;
-6. installers собираются автоматически для целевых платформ;
-7. runtime dependencies bundled;
-8. signing status понятен и честно сообщен;
-9. архитектурные решения и ограничения записаны;
-10. release artifacts проверены на чистых системах.
+1. the main user workflow completes without manually touching internal
+   files;
+2. data is saved atomically and recovers after a restart;
+3. portable export/import is documented;
+4. the UI matches the implementation screenshots;
+5. tests and smoke checks pass;
+6. installers are built automatically for the target platforms;
+7. runtime dependencies are bundled;
+8. signing status is clear and honestly reported;
+9. architectural decisions and constraints are recorded;
+10. release artifacts are verified on clean systems.
 
-## 18. Рекомендуемые следующие улучшения CV Builder
+## 18. Recommended next improvements for CV Builder
 
-1. Вынести версию в единый source и генерировать platform metadata.
-2. Разделить `CVBuilderApp` на screens, components и application service.
-3. Добавить `schema_version` и migrations.
-4. Добавить Windows UI smoke в GitHub Actions.
-5. Автоматизировать GitHub Release после подписанной tag-сборки.
-6. Добавить localization layer до перевода интерфейса.
-7. Добавить backup/restore всей library одним архивом.
-
+1. Move the version into a single source and generate platform metadata.
+2. Split `CVBuilderApp` into screens, components, and an application
+   service.
+3. Add `schema_version` and migrations.
+4. Add a Windows UI smoke test to GitHub Actions.
+5. Automate a GitHub Release after a signed tag build.
+6. Add a localization layer before translating the interface.
+7. Add backup/restore of the whole library as a single archive.
+</content>
