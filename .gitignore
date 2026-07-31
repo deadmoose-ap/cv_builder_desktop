@@ -13,3 +13,4 @@ dmg-root/
 !codex-plugins/**/.codex-plugin/plugin.json
 *.pdf
 .DS_Store
+ui-screens/
