@@ -1,0 +1,27 @@
+{
+  "name": "app-icon-studio",
+  "version": "0.1.0+codex.20260728150654",
+  "description": "Design, refine, validate, and package polished desktop app icons.",
+  "author": {
+    "name": "Local developer"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "App Icon Studio",
+    "shortDescription": "Create polished, production-ready app icons",
+    "longDescription": "Creates premium raster app-icon concepts, optical small-size variants, macOS ICNS/iconsets, Windows ICO files, and packaging verification checklists.",
+    "developerName": "Local developer",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Create three comparable icon concepts for my app.",
+      "Refine this glass icon for 128 and 32 px.",
+      "Package this approved PNG for macOS and Windows."
+    ],
+    "composerIcon": "./assets/composer-icon.png",
+    "logo": "./assets/logo.png"
+  }
+}

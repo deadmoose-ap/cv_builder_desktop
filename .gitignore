@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+build/
+dist/
+installer/
+dmg-root/
+.venv-build/
+*.dmg
+*.spec
+!CVBuilder.spec
+*.json
+!codex-plugins/**/.codex-plugin/plugin.json
+*.pdf
+.DS_Store

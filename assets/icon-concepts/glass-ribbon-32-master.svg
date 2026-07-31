@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+  <defs>
+    <linearGradient id="bg" x1="3" y1="1" x2="29" y2="32" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#C4E5FA"/>
+      <stop offset="0.42" stop-color="#64A9E3"/>
+      <stop offset="1" stop-color="#245AB5"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0" cy="0" r="1" gradientTransform="translate(8 5) rotate(50) scale(26 30)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.72"/>
+      <stop offset="0.55" stop-color="#FFFFFF" stop-opacity="0.04"/>
+      <stop offset="1" stop-color="#0C3F91" stop-opacity="0.2"/>
+    </radialGradient>
+    <linearGradient id="paper" x1="7" y1="5" x2="23" y2="27" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.94"/>
+      <stop offset="0.56" stop-color="#E8F6FF" stop-opacity="0.76"/>
+      <stop offset="1" stop-color="#B8DDFC" stop-opacity="0.9"/>
+    </linearGradient>
+    <linearGradient id="ribbon" x1="6" y1="29" x2="29" y2="9" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#25D4F7"/>
+      <stop offset="0.3" stop-color="#05A5F1"/>
+      <stop offset="0.68" stop-color="#096BE5"/>
+      <stop offset="0.9" stop-color="#3146D4"/>
+      <stop offset="1" stop-color="#7046D4"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="1" y="1" width="30" height="30" rx="7.5" fill="url(#bg)"/>
+  <rect x="1" y="1" width="30" height="30" rx="7.5" fill="url(#glow)"/>
+  <rect x="1.75" y="1.75" width="28.5" height="28.5" rx="6.75" fill="none" stroke="#F2FBFF" stroke-width="1.5"/>
+  <path d="M4.5 5.5C10 2.2 21 2.2 27.5 5.3" fill="none" stroke="#FFFFFF" stroke-opacity="0.55" stroke-width="0.75" stroke-linecap="round"/>
+
+  <path d="M8 5.5L20.5 4.5C22.5 4.4 23.7 5.5 23.9 7.2L25 21.5C25.2 23.7 23.6 25.5 21.4 25.7L9.6 26.5C7.5 26.7 6.1 25.3 6 23.2L5 8.3C4.9 6.8 6 5.7 8 5.5Z"
+        fill="url(#paper)" stroke="#D7F4FF" stroke-width="1.3"/>
+  <path d="M8 6.4L20 5.5C21.4 5.4 22.4 6.2 22.6 7.5" fill="none" stroke="#FFFFFF" stroke-opacity="0.9" stroke-width="0.7" stroke-linecap="round"/>
+
+  <circle cx="11" cy="10.2" r="1.65" fill="#2385E5"/>
+  <path d="M8.7 14.2C9 12.3 9.8 11.6 11 11.6C12.3 11.6 13.1 12.3 13.4 14.2Z" fill="#2385E5"/>
+  <rect x="9" y="16" width="8" height="1.7" rx="0.85" fill="#68AFE8"/>
+  <rect x="9" y="19.1" width="6.2" height="1.7" rx="0.85" fill="#68AFE8"/>
+
+  <path d="M6 26.2C11.4 25.2 15.5 22.2 18.2 17.7C20.9 13.1 24 10.7 28 9.8L29.6 13.2C26.8 14.8 25.5 17.5 24 20.8C21.6 26.2 15.5 29.1 7 29Z"
+        fill="url(#ribbon)" stroke="#CFF8FF" stroke-width="1.35" stroke-linejoin="round"/>
+  <path d="M7.2 26C11.8 24.7 15.7 21.8 18.4 17.3C21 13 24 10.9 27.8 10.4"
+        fill="none" stroke="#FFFFFF" stroke-opacity="0.92" stroke-width="0.85" stroke-linecap="round"/>
+  <path d="M10 28C16.4 27.2 21.1 24.5 23.5 20" fill="none" stroke="#56E6FF" stroke-opacity="0.72" stroke-width="0.65" stroke-linecap="round"/>
+</svg>

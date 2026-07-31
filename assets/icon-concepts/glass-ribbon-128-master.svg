@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="bg" x1="13" y1="5" x2="112" y2="124" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#D7ECFB"/>
+      <stop offset="0.42" stop-color="#83BCE9"/>
+      <stop offset="0.76" stop-color="#4A8DD4"/>
+      <stop offset="1" stop-color="#3268B8"/>
+    </linearGradient>
+    <radialGradient id="bgGlow" cx="0" cy="0" r="1" gradientTransform="translate(32 20) rotate(51) scale(94 106)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.74"/>
+      <stop offset="0.46" stop-color="#D5EEFF" stop-opacity="0.18"/>
+      <stop offset="1" stop-color="#164E9E" stop-opacity="0.16"/>
+    </radialGradient>
+    <linearGradient id="paper" x1="31" y1="18" x2="91" y2="103" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.86"/>
+      <stop offset="0.5" stop-color="#EAF6FF" stop-opacity="0.64"/>
+      <stop offset="1" stop-color="#C9E4FB" stop-opacity="0.8"/>
+    </linearGradient>
+    <linearGradient id="paperRim" x1="28" y1="16" x2="101" y2="100" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF"/>
+      <stop offset="0.42" stop-color="#C9EDFF"/>
+      <stop offset="0.72" stop-color="#438FE8"/>
+      <stop offset="1" stop-color="#0F5FC5"/>
+    </linearGradient>
+    <linearGradient id="profile" x1="41" y1="34" x2="55" y2="60" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#B9E8FF"/>
+      <stop offset="0.42" stop-color="#238CEB"/>
+      <stop offset="1" stop-color="#2951D2"/>
+    </linearGradient>
+    <linearGradient id="bar" x1="39" y1="66" x2="77" y2="82" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#D9F4FF"/>
+      <stop offset="0.34" stop-color="#79C5F2"/>
+      <stop offset="1" stop-color="#4381D7"/>
+    </linearGradient>
+    <linearGradient id="ribbon" x1="28" y1="109" x2="108" y2="43" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#2AD7F7"/>
+      <stop offset="0.27" stop-color="#06A9F1"/>
+      <stop offset="0.62" stop-color="#0874E8"/>
+      <stop offset="0.86" stop-color="#284ED8"/>
+      <stop offset="1" stop-color="#6D42D7"/>
+    </linearGradient>
+    <linearGradient id="ribbonShade" x1="40" y1="108" x2="106" y2="52" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#005EC3" stop-opacity="0.12"/>
+      <stop offset="0.58" stop-color="#063AB5" stop-opacity="0.45"/>
+      <stop offset="1" stop-color="#5527B8" stop-opacity="0.74"/>
+    </linearGradient>
+    <filter id="shadow" x="-25%" y="-25%" width="160%" height="170%">
+      <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#15457F" flood-opacity="0.35"/>
+    </filter>
+    <filter id="ribbonShadow" x="-25%" y="-35%" width="170%" height="190%">
+      <feDropShadow dx="0" dy="3" stdDeviation="2.5" flood-color="#173B9B" flood-opacity="0.44"/>
+    </filter>
+  </defs>
+
+  <rect x="3" y="3" width="122" height="122" rx="29" fill="url(#bg)"/>
+  <rect x="3" y="3" width="122" height="122" rx="29" fill="url(#bgGlow)"/>
+  <rect x="4.5" y="4.5" width="119" height="119" rx="27.5" fill="none" stroke="#F2FBFF" stroke-width="3"/>
+  <path d="M16 20C37 8 82 7 109 21" fill="none" stroke="#FFFFFF" stroke-opacity="0.55" stroke-width="2.2" stroke-linecap="round"/>
+
+  <g filter="url(#shadow)">
+    <path d="M33 22L88 17C94 16.5 98 20 98.5 26L103 81C103.5 89 98 96 90 97L40 102C32 103 27 98 26.5 90L22 33C21.5 27 25 23 33 22Z"
+          fill="url(#paper)" stroke="url(#paperRim)" stroke-width="3"/>
+    <path d="M33 25L87 20C92 19.5 95 22.5 95.5 27" fill="none" stroke="#FFFFFF" stroke-opacity="0.82" stroke-width="1.4" stroke-linecap="round"/>
+
+    <circle cx="48" cy="43" r="7" fill="#DFF6FF" fill-opacity="0.45" stroke="#DDF7FF" stroke-width="2"/>
+    <circle cx="48" cy="41.5" r="4.6" fill="url(#profile)"/>
+    <path d="M39 56.5C40.5 50.8 43.5 48.3 48 48.3C52.5 48.3 55.5 50.8 57 56.5Z" fill="url(#profile)"/>
+    <path d="M43.5 39.2C45 36.8 49.8 36.4 52 39.1" fill="none" stroke="#FFFFFF" stroke-opacity="0.72" stroke-width="1.2" stroke-linecap="round"/>
+
+    <rect x="38" y="65" width="40" height="7" rx="3.5" fill="url(#bar)" stroke="#D9F5FF" stroke-width="1"/>
+    <rect x="38" y="77" width="31" height="7" rx="3.5" fill="url(#bar)" stroke="#D9F5FF" stroke-width="1"/>
+    <path d="M41 67H73" stroke="#FFFFFF" stroke-opacity="0.68" stroke-width="1.2" stroke-linecap="round"/>
+    <path d="M41 79H65" stroke="#FFFFFF" stroke-opacity="0.68" stroke-width="1.2" stroke-linecap="round"/>
+  </g>
+
+  <g filter="url(#ribbonShadow)">
+    <path d="M27 102C45 98 59 88 69 72C80 54 91 46 106 42L112 50C100 56 94 67 88 80C78 102 57 112 29 111Z"
+          fill="url(#ribbon)" stroke="#CFF8FF" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M39 106C57 101 69 90 78 75C88 59 97 51 108 47L112 50C100 56 94 67 88 80C78 102 57 112 29 111Z"
+          fill="url(#ribbonShade)"/>
+    <path d="M30 102C47 96.5 60 86.5 70.5 70.5C80 56 91 48 105 44.5"
+          fill="none" stroke="#FFFFFF" stroke-opacity="0.86" stroke-width="2.2" stroke-linecap="round"/>
+    <path d="M34 108C55 106 73 96 83 78" fill="none" stroke="#6CEBFF" stroke-opacity="0.72" stroke-width="1.5" stroke-linecap="round"/>
+  </g>
+</svg>
