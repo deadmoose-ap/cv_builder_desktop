@@ -6,6 +6,7 @@ dist/
 installer/
 dmg-root/
 .venv-build/
+.venv/
 *.dmg
 *.spec
 !CVBuilder.spec
