@@ -266,7 +266,10 @@ class CVBuilderApp(ctk.CTk):
         self._progress_job: str | None = None
         self._autosave_job: str | None = None
 
+        self._title_commit_in_progress = False
+
         self.status = tk.StringVar(value="Local CV library")
+        self.document_title_var = tk.StringVar(value="")
         self.progress_text = tk.StringVar(value="0% complete")
         self.summary_count = tk.StringVar(value="0 characters")
         self.experience_title = tk.StringVar(value="Experience")
@@ -361,6 +364,45 @@ class CVBuilderApp(ctk.CTk):
         common.update(variants[variant])
         return ctk.CTkButton(parent, **common)
 
+    def _bind_title_entry(self):
+        """Make the header title look flat until hovered or focused."""
+        entry = self.title_entry
+        entry.bind("<Enter>", lambda _event: self._style_title_entry(True))
+        entry.bind("<Leave>", lambda _event: self._style_title_entry(False))
+        entry.bind("<FocusIn>", lambda _event: self._style_title_entry(True))
+        entry.bind("<FocusOut>", self._on_title_focus_out)
+        entry.bind("<Return>", self._on_title_return)
+        entry.bind("<Escape>", self._on_title_escape)
+
+    def _style_title_entry(self, active: bool):
+        if self.title_entry.cget("state") == "disabled":
+            return
+        if active:
+            self.title_entry.configure(
+                fg_color=COLORS["surface_alt"],
+                border_width=1,
+                border_color=COLORS["border"],
+            )
+            return
+        if self.focus_get() is not self.title_entry._entry:
+            self.title_entry.configure(
+                fg_color=COLORS["surface"], border_width=0
+            )
+
+    def _on_title_focus_out(self, _event=None):
+        self._commit_title_edit()
+        self._style_title_entry(False)
+
+    def _on_title_return(self, _event=None):
+        self._commit_title_edit()
+        self.focus_set()
+        return "break"
+
+    def _on_title_escape(self, _event=None):
+        self._reset_title_field()
+        self.focus_set()
+        return "break"
+
     def _build_shell(self):
         parent = self.editor_view
         parent.grid_columnconfigure(0, weight=1)
@@ -375,22 +417,36 @@ class CVBuilderApp(ctk.CTk):
         )
         header.grid(row=0, column=0, sticky="ew")
         header.grid_propagate(False)
-        header.grid_columnconfigure(1, weight=1)
+        header.grid_columnconfigure(2, weight=1)
         ctk.CTkLabel(
             header,
             text=APP_NAME,
             font=self.font_brand,
             text_color=COLORS["text"],
         ).grid(row=0, column=0, sticky="w", padx=(20, 0), pady=12)
+        self.title_entry = ctk.CTkEntry(
+            header,
+            textvariable=self.document_title_var,
+            font=self.font_card_title,
+            width=260,
+            height=30,
+            corner_radius=8,
+            fg_color=COLORS["surface"],
+            border_width=0,
+            text_color=COLORS["text"],
+            state="disabled",
+        )
+        self.title_entry.grid(row=0, column=1, sticky="w", padx=(18, 8))
+        self._bind_title_entry()
         ctk.CTkLabel(
             header,
             textvariable=self.status,
             font=self.font_small,
             text_color=COLORS["muted"],
-        ).grid(row=0, column=1, sticky="w", padx=(18, 10))
+        ).grid(row=0, column=2, sticky="w", padx=(2, 10))
 
         actions = ctk.CTkFrame(header, fg_color="transparent")
-        actions.grid(row=0, column=2, sticky="e", padx=(0, 18), pady=11)
+        actions.grid(row=0, column=3, sticky="e", padx=(0, 18), pady=11)
         self._button(
             actions,
             text="All CVs",
@@ -687,6 +743,14 @@ class CVBuilderApp(ctk.CTk):
                 command=lambda value=record.id: self.rename_cv(value),
                 variant="ghost",
                 width=68,
+                height=34,
+            ).pack(side="left")
+            self._button(
+                card_actions,
+                text="Duplicate",
+                command=lambda value=record.id: self.duplicate_cv(value),
+                variant="ghost",
+                width=78,
                 height=34,
             ).pack(side="left")
             self._button(
@@ -1210,6 +1274,9 @@ class CVBuilderApp(ctk.CTk):
         self._save_now()
         self.refresh_library()
         self.library_view.tkraise()
+        self.title_entry.configure(
+            state="disabled", fg_color=COLORS["surface"], border_width=0
+        )
         self.status.set("Local CV library")
 
     def create_cv(self):
@@ -1229,14 +1296,16 @@ class CVBuilderApp(ctk.CTk):
             return
         self.current_document_id = record.id
         self.current_document_title = record.title
+        self.title_entry.configure(state="normal")
+        self.document_title_var.set(record.title)
         self.populate_form()
         self.show_section("profile")
         self.editor_view.tkraise()
-        self.status.set(f"{record.title}  ·  Saved")
+        self.status.set("Saved")
 
     def rename_cv(self, document_id: str):
         try:
-            record = self.library.get_record(document_id)
+            self.library.get_record(document_id)
         except Exception as error:
             messagebox.showerror("Could not rename CV", str(error), parent=self)
             return
@@ -1247,13 +1316,49 @@ class CVBuilderApp(ctk.CTk):
         value = dialog.get_input()
         if value is None:
             return
+        self._apply_rename(document_id, value)
+        self.refresh_library()
+
+    def _apply_rename(self, document_id: str, value: str) -> bool:
+        """Persist a new title and keep the editor header in sync."""
         try:
             updated = self.library.rename_document(document_id, value)
-            if self.current_document_id == document_id:
-                self.current_document_title = updated.title
-            self.refresh_library()
         except Exception as error:
             messagebox.showerror("Could not rename CV", str(error), parent=self)
+            self._reset_title_field()
+            return False
+        if self.current_document_id == document_id:
+            self.current_document_title = updated.title
+            self.document_title_var.set(updated.title)
+        return True
+
+    def _reset_title_field(self):
+        self.document_title_var.set(self.current_document_title)
+
+    def _commit_title_edit(self, *_args):
+        """Apply the header title field; revert when empty or unchanged."""
+        if self._title_commit_in_progress:
+            return
+        if self.current_document_id is None:
+            self._reset_title_field()
+            return
+        value = self.document_title_var.get().strip()
+        if not value or value == self.current_document_title:
+            self._reset_title_field()
+            return
+        self._title_commit_in_progress = True
+        try:
+            self._apply_rename(self.current_document_id, value)
+        finally:
+            self._title_commit_in_progress = False
+
+    def duplicate_cv(self, document_id: str):
+        try:
+            self.library.duplicate_document(document_id)
+        except Exception as error:
+            messagebox.showerror("Could not duplicate CV", str(error), parent=self)
+            return
+        self.refresh_library()
 
     def delete_cv(self, document_id: str):
         try:
@@ -1273,6 +1378,7 @@ class CVBuilderApp(ctk.CTk):
             if self.current_document_id == document_id:
                 self.current_document_id = None
                 self.current_document_title = ""
+                self.document_title_var.set("")
                 self.data = new_document()
             self.refresh_library()
         except Exception as error:
@@ -1331,9 +1437,7 @@ class CVBuilderApp(ctk.CTk):
         try:
             self._save_now()
             save_document(path, self.collect_form())
-            self.status.set(
-                f"{self.current_document_title}  ·  JSON exported"
-            )
+            self.status.set("JSON exported")
             return True
         except Exception as error:
             messagebox.showerror("Could not export JSON", str(error), parent=self)
@@ -1395,7 +1499,7 @@ class CVBuilderApp(ctk.CTk):
     def _mark_dirty(self):
         if self.current_document_id is None:
             return
-        self.status.set(f"{self.current_document_title}  ·  Saving…")
+        self.status.set("Saving…")
         self._schedule_progress_update()
         self._schedule_autosave()
 
@@ -1420,10 +1524,10 @@ class CVBuilderApp(ctk.CTk):
                 self.current_document_id,
                 self.collect_form(),
             )
-            self.status.set(f"{self.current_document_title}  ·  Saved")
+            self.status.set("Saved")
             return True
         except Exception:
-            self.status.set(f"{self.current_document_title}  ·  Save failed")
+            self.status.set("Save failed")
             return False
 
     def _close_application(self):

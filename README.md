@@ -10,6 +10,8 @@ CV Builder is a local desktop application for creating a structured CV and expor
 - Rounded CustomTkinter cards, fields, and action hierarchy
 - Inline experience editor that keeps the user in the main workspace
 - App-managed library for multiple CVs
+- Duplicate any CV from the library to start a tailored variant
+- Rename the current CV straight from the editor header
 - Debounced background autosave
 - Real placeholders that never become CV data
 - Import, export, and downloadable example JSON

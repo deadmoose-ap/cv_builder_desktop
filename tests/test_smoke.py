@@ -99,3 +99,28 @@ def test_local_library_create_autosave_rename_import_and_delete(tmp_path: Path):
         first.id,
         imported.id,
     }
+
+
+def test_local_library_duplicate_document(tmp_path: Path):
+    library = CVLibrary(tmp_path / "library")
+    source = library.create_document("Product CV", example_document())
+
+    copy = library.duplicate_document(source.id)
+    assert copy.id != source.id
+    assert copy.title == "Product CV copy"
+    assert library.load_document(copy.id) == library.load_document(source.id)
+
+    second_copy = library.duplicate_document(source.id)
+    assert second_copy.title == "Product CV copy 2"
+
+    data = library.load_document(copy.id)
+    data["profile"]["name"] = "Copy Only"
+    library.save_document(copy.id, data)
+    assert library.load_document(source.id)["profile"]["name"] != "Copy Only"
+
+    try:
+        library.duplicate_document("missing-id")
+    except KeyError:
+        pass
+    else:
+        raise AssertionError("duplicate_document must reject unknown ids")

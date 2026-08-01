@@ -118,6 +118,12 @@ class CVLibrary:
         self._write_index(index)
         return self._record_from_dict(item)
 
+    def duplicate_document(self, document_id: str) -> CVRecord:
+        """Create an independent copy of an existing CV, including its data."""
+        record = self.get_record(document_id)
+        data = self.load_document(document_id)
+        return self.create_document(f"{record.title} copy", data)
+
     def get_record(self, document_id: str) -> CVRecord:
         for record in self.list_documents():
             if record.id == document_id:

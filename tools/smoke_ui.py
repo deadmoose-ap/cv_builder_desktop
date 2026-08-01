@@ -58,6 +58,23 @@ def main() -> None:
         app.update_idletasks()
         assert app.data["experience"][0]["role"] == "UI SMOKE ROLE"
         assert not app.experience_editor_open
+
+        app.document_title_var.set("Renamed CV")
+        app._commit_title_edit()
+        app.update_idletasks()
+        assert app.current_document_title == "Renamed CV"
+        assert library.get_record(record.id).title == "Renamed CV"
+
+        app.document_title_var.set("   ")
+        app._commit_title_edit()
+        app.update_idletasks()
+        assert app.document_title_var.get() == "Renamed CV"
+        assert library.get_record(record.id).title == "Renamed CV"
+
+        app.duplicate_cv(record.id)
+        app.update_idletasks()
+        titles = {item.title for item in library.list_documents()}
+        assert titles == {"Renamed CV", "Renamed CV copy"}
         app.after(800, finish)
 
     def finish() -> None:

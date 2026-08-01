@@ -175,7 +175,7 @@ Use the platform-native application data directory:
 The repository should expose use cases, not paths:
 
 ```text
-list / create / load / save / rename / delete / import
+list / create / duplicate / load / save / rename / delete / import
 ```
 
 The library index stores metadata; documents are separate JSON files. This
