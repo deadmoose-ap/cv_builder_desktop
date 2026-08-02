@@ -13,11 +13,12 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(PROJECT_ROOT))
+if str(PROJECT_ROOT / "src") not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
-from app import CVBuilderApp
-from cv_library import CVLibrary
+from cv_builder.domain.model import example_document
+from cv_builder.infrastructure.library import CVLibrary
+from cv_builder.ui.app import CVBuilderApp
 
 
 class NSPoint(ctypes.Structure):
@@ -127,6 +128,7 @@ def main() -> None:
         ("experience", "03-experience"),
         ("education", "04-education"),
         ("experience-editor", "05-experience-editor"),
+        ("preview", "06-preview"),
     ]
     position = 0
 
@@ -141,7 +143,12 @@ def main() -> None:
             app.show_library()
         elif state == "experience-editor":
             app.show_section("experience")
-            app.add_experience()
+            app.editor_view.experience.add_entry()
+        elif state == "preview":
+            # A filled document shows the real preview layout, not empty pages.
+            sample = library.create_document("Preview Sample CV", example_document())
+            app.open_library_document(sample.id)
+            app.show_section("preview")
         else:
             if app.current_document_id is None:
                 app.open_library_document(record.id)

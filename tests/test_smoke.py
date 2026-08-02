@@ -1,10 +1,21 @@
 """Smoke tests for the data layer and PDF renderer."""
+import re
 from pathlib import Path
 
-from app import calculate_completion, split_lines, split_paragraphs
-from cv_library import CVLibrary
-from cv_model import example_document, load_document, new_document, save_document
-from pdf_generator import generate_pdf
+from cv_builder.domain import themes
+from cv_builder.domain.completion import calculate_completion
+from cv_builder.domain.model import (
+    example_document,
+    load_document,
+    new_document,
+    normalize_document,
+    save_document,
+)
+from cv_builder.domain.text import split_lines, split_paragraphs
+from cv_builder.exporters import page_style
+from cv_builder.exporters.pdf import generate_pdf
+from cv_builder.exporters.preview_layout import build_pages
+from cv_builder.infrastructure.library import CVLibrary
 
 
 def test_json_round_trip(tmp_path: Path):
@@ -70,6 +81,65 @@ def test_example_is_separate_from_empty_new_document():
     assert new_document()["experience"] == []
     assert example_document()["profile"]["name"] == "YOUR NAME"
     assert example_document()["experience"]
+
+
+def test_theme_is_optional_and_always_normalized():
+    assert new_document()["theme"] == themes.DEFAULT_THEME
+
+    legacy = new_document()
+    del legacy["theme"]
+    assert normalize_document(legacy)["theme"] == themes.DEFAULT_THEME
+
+    unknown = new_document()
+    unknown["theme"] = "not-a-theme"
+    assert normalize_document(unknown)["theme"] == themes.DEFAULT_THEME
+
+    chosen = new_document()
+    chosen["theme"] = "mint"
+    assert normalize_document(chosen)["theme"] == "mint"
+
+
+def test_sidebar_text_colour_follows_plate_contrast():
+    expected_dark = {"#adc178", "#c2f8cb"}
+    for theme in themes.SIDEBAR_THEMES:
+        uses_dark = themes.sidebar_uses_dark_text(theme["color"])
+        assert uses_dark is (theme["color"] in expected_dark), theme["key"]
+
+    assert page_style.resolve_color("side_head", "#c2f8cb") == "#0b0b0b"
+    assert page_style.resolve_color("side_body", "#c2f8cb") == "#161616"
+    assert page_style.resolve_color("side_body", "#020c1a") == "#ffffff"
+    # Main-column text never depends on the sidebar plate.
+    assert page_style.resolve_color("section", "#c2f8cb") == "#0b0b0b"
+    assert page_style.resolve_color("body", "#020c1a") == "#161616"
+    assert page_style.resolve_color("location", "#020c1a") == "#a9a9a9"
+
+
+def test_theme_reaches_the_exported_pdf(tmp_path: Path):
+    data = example_document()
+    data["theme"] = "mint"
+    target = tmp_path / "themed.pdf"
+    generate_pdf(data, target)
+    assert target.read_bytes().startswith(b"%PDF-")
+
+
+def test_preview_matches_the_exported_page_count(tmp_path: Path):
+    data = normalize_document(example_document())
+    data["experience"] = data["experience"] * 6
+    data["theme"] = "mint"
+
+    pages = build_pages(data)
+    target = tmp_path / "long.pdf"
+    generate_pdf(data, target)
+    exported = len(re.findall(rb"/Type\s*/Page[^s]", target.read_bytes()))
+    assert len(pages) == exported > 1
+
+    assert pages[0].sidebar_color == "#c2f8cb"
+    sidebar_lines = [line for line in pages[0].lines if line.x < page_style.MAIN_X]
+    assert "CONTACT" in {line.text for line in sidebar_lines}
+    assert all(line.color in ("#0b0b0b", "#161616") for line in sidebar_lines)
+    # The contact block is printed on the first page only.
+    assert all(line.x >= page_style.MAIN_X for line in pages[1].lines[:-1])
+    assert pages[1].lines[-1].text == "Page 2"
 
 
 def test_local_library_create_autosave_rename_import_and_delete(tmp_path: Path):

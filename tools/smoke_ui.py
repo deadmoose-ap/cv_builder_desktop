@@ -1,11 +1,18 @@
 """Exercise the main UI states without entering the Tk event loop."""
 from __future__ import annotations
 
+import sys
+from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from app import CVBuilderApp, SECTION_ORDER
-from cv_library import CVLibrary
-from cv_model import example_document
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT / "src") not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT / "src"))
+
+from cv_builder.domain.model import example_document
+from cv_builder.infrastructure.library import CVLibrary
+from cv_builder.ui.app import CVBuilderApp
+from cv_builder.ui.screens.editor import SECTION_ORDER
 
 
 def main() -> None:
@@ -13,23 +20,24 @@ def main() -> None:
     library = CVLibrary(temporary.name)
     record = library.create_document("Smoke Test CV", example_document())
     app = CVBuilderApp(library=library)
+    editor = app.editor_view
     states: list[tuple[str, int, int]] = []
 
     def exercise() -> None:
         app.update_idletasks()
         assert app.library_view.winfo_ismapped()
-        assert app.skills_text.get("1.0", "end-1c") == ""
-        assert app.summary_text.get("1.0", "end-1c") == ""
-        app.editor_view.tkraise()
+        assert editor.profile.skills_text.get("1.0", "end-1c") == ""
+        assert editor.summary.text.get("1.0", "end-1c") == ""
+        editor.tkraise()
         app.show_section("profile")
         app.update_idletasks()
-        name_entry = app.profile_entries["name"]
+        name_entry = editor.profile.entries["name"]
         assert name_entry._placeholder_label.winfo_ismapped()
         name_entry._focus_from_placeholder()
         name_entry._entry.insert(0, "Immediate typing")
         app.update_idletasks()
-        assert app.profile_vars["name"].get() == "Immediate typing"
-        app.profile_vars["name"].set("")
+        assert editor.profile.vars["name"].get() == "Immediate typing"
+        editor.profile.vars["name"].set("")
         app.show_library()
 
         app.open_library_document(record.id)
@@ -37,36 +45,32 @@ def main() -> None:
         for section in SECTION_ORDER:
             app.show_section(section)
             app.update_idletasks()
-            states.append(
-                (
-                    section,
-                    app.section_frames[section].winfo_width(),
-                    app.section_frames[section].winfo_height(),
-                )
-            )
+            frame = editor.sections[section]
+            states.append((section, frame.winfo_width(), frame.winfo_height()))
 
         app.show_section("experience")
-        app.edit_experience(0)
+        experience = editor.experience
+        experience.edit_entry(0)
         app.update_idletasks()
-        assert app.experience_editor_open
-        app.cancel_experience_edit()
+        assert experience.editor_open
+        experience.cancel_edit()
         app.update_idletasks()
-        assert not app.experience_editor_open
-        app.edit_experience(0)
-        app.editor_vars["role"].set("UI SMOKE ROLE")
-        app.save_experience_entry()
+        assert not experience.editor_open
+        experience.edit_entry(0)
+        experience.editor_vars["role"].set("UI SMOKE ROLE")
+        experience.save_entry()
         app.update_idletasks()
         assert app.data["experience"][0]["role"] == "UI SMOKE ROLE"
-        assert not app.experience_editor_open
+        assert not experience.editor_open
 
         app.document_title_var.set("Renamed CV")
-        app._commit_title_edit()
+        app.commit_title_edit()
         app.update_idletasks()
         assert app.current_document_title == "Renamed CV"
         assert library.get_record(record.id).title == "Renamed CV"
 
         app.document_title_var.set("   ")
-        app._commit_title_edit()
+        app.commit_title_edit()
         app.update_idletasks()
         assert app.document_title_var.get() == "Renamed CV"
         assert library.get_record(record.id).title == "Renamed CV"
@@ -75,6 +79,18 @@ def main() -> None:
         app.update_idletasks()
         titles = {item.title for item in library.list_documents()}
         assert titles == {"Renamed CV", "Renamed CV copy"}
+
+        app.show_section("preview")
+        app.update_idletasks()
+        preview = editor.preview
+        assert app.current_section == "preview"
+        assert preview.canvas.find_all()
+        preview.select_theme("mint")
+        app.update_idletasks()
+        assert app.data["theme"] == "mint"
+        assert preview.selected_theme == "mint"
+        app.show_section("profile")
+        app.update_idletasks()
         app.after(800, finish)
 
     def finish() -> None:
@@ -85,9 +101,9 @@ def main() -> None:
             section_width > 0 and section_height > 0
             for _, section_width, section_height in states
         )
-        assert library.load_document(record.id)["experience"][0]["role"] == (
-            "UI SMOKE ROLE"
-        )
+        stored = library.load_document(record.id)
+        assert stored["experience"][0]["role"] == "UI SMOKE ROLE"
+        assert stored["theme"] == "mint"
         print(f"window={width}x{height}")
         print(
             f"library={app.library_view.winfo_width()}x"
