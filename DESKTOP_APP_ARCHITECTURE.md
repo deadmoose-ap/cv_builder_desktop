@@ -59,19 +59,35 @@ flowchart LR
 
 | Layer | Responsibility | Current example |
 |---|---|---|
-| Presentation | windows, navigation, forms, feedback | `app.py`, CustomTkinter |
-| Application | use cases, autosave, import/export orchestration | `CVBuilderApp` methods |
-| Domain | schema, defaults, normalization, validation | `cv_model.py` |
-| Infrastructure | local library and platform paths | `cv_library.py` |
-| Output adapters | PDF/CSV/other formats | `pdf_generator.py` |
+| Presentation | windows, navigation, forms, feedback | `ui/app.py`, `ui/screens/`, `ui/components/`, `ui/theme.py` |
+| Application | use cases, autosave, import/export orchestration | `application/document_service.py` |
+| Domain | schema, defaults, normalization, themes, completion | `domain/` |
+| Infrastructure | local library and platform paths | `infrastructure/library.py` |
+| Output adapters | PDF and preview rendering | `exporters/` |
 | Packaging | icons, metadata, installers, signing | `CVBuilder.spec`, scripts |
 | Quality | unit, smoke, and screenshot checks | `tests/`, `tools/` |
 
-## 4. Recommended structure for a future project
+### One description, several renderers
 
-For a small prototype, four current Python files are acceptable. Once a
-third complex screen or several use cases appear, the following structure is
-recommended:
+Whenever a document is rendered in more than one place (export + on-screen
+preview), the *description* of the document must live outside both renderers:
+
+- `domain/themes.py` — colour themes and the contrast rule that picks light or
+  dark text for a coloured plate;
+- `exporters/page_style.py` — page geometry and typography;
+- `exporters/story.py` — the ordered paragraphs, gaps and keep-together groups;
+- `exporters/pdf.py` — turns the story into ReportLab flowables;
+- `exporters/preview_layout.py` — paginates the same story into canvas lines using the
+  PDF font metrics, so the preview breaks lines and pages exactly like the
+  export.
+
+A regression test asserts that the preview and the exported PDF agree on the
+page count; without it the two renderers drift apart silently.
+
+## 4. Package structure
+
+CV Builder now uses this layout; it is the recommended starting point for a
+future app once it grows past a two-file prototype:
 
 ```text
 desktop_app/
@@ -79,24 +95,26 @@ desktop_app/
 │   └── product_name/
 │       ├── main.py
 │       ├── domain/
-│       │   ├── models.py
-│       │   ├── schema.py
-│       │   └── validation.py
+│       │   ├── model.py         (schema, defaults, normalization)
+│       │   ├── themes.py        (document colour themes)
+│       │   ├── text.py
+│       │   └── completion.py
 │       ├── application/
-│       │   ├── services.py
-│       │   └── commands.py
+│       │   └── document_service.py
 │       ├── infrastructure/
-│       │   ├── repository.py
-│       │   ├── paths.py
-│       │   └── migrations.py
+│       │   └── library.py       (repository + platform paths)
 │       ├── exporters/
-│       │   └── pdf.py
+│       │   ├── page_style.py
+│       │   ├── story.py
+│       │   ├── pdf.py
+│       │   └── preview_layout.py
+│       ├── diagnostics.py
 │       └── ui/
 │           ├── app.py
-│           ├── screens/
-│           ├── components/
+│           ├── screens/         (library, editor, sections/)
+│           ├── components/      (fields, scrollable, preview_canvas)
 │           ├── theme.py
-│           └── state.py
+│           └── placeholders.py
 ├── assets/
 │   ├── AppIcon.iconset/
 │   ├── AppIcon.icns
@@ -109,15 +127,15 @@ desktop_app/
 │   ├── capture_ui_screens.py
 │   └── smoke_ui.py
 ├── tests/
+├── conftest.py            (puts src/ on sys.path — no install step)
 ├── .github/workflows/
-├── pyproject.toml
 ├── requirements.txt
 ├── requirements-build.txt
 ├── build_macos.sh
 └── build_windows.ps1
 ```
 
-### When to split the current `app.py`
+### When to split the root UI file
 
 Split it when at least one of these conditions holds:
 
@@ -127,9 +145,19 @@ Split it when at least one of these conditions holds:
 - a second document type is being added;
 - several windows or independent workflows appear.
 
-The next step for CV Builder is to extract screens/components and
-application services, leaving the root class with only composition,
-navigation, and lifecycle.
+CV Builder crossed that line at ~1970 lines and was split (2026-08-01):
+
+- each screen is a `CTkFrame` subclass in `ui/screens/`, each editor section a
+  `Section` subclass in `ui/screens/sections/`, both created with a
+  `controller` (the root app) they call back into;
+- shared widgets and the colour/font tokens live in `ui/components/` and
+  `ui/theme.py`, so no screen hard-codes a colour;
+- every filesystem or export call goes through `application/document_service.py`;
+- the root class keeps only the open document, navigation and the commands the
+  screens trigger.
+
+Entry point: `src/cv_builder/main.py` (also `python -m cv_builder`), which
+still serves `--smoke-test` and `--ui-smoke-test` inside the frozen app.
 
 ## 5. Domain model and data
 
@@ -153,6 +181,12 @@ Each document should have:
 - `schema_version` — recommended to add in future applications.
 
 Placeholders must be UI state, not a value in the domain model.
+
+Presentation choices that belong to the document itself (CV Builder stores the
+sidebar colour as a top-level `theme` key) live in the document JSON, not in
+the library index: an exported file must render the same way after import.
+Such keys stay optional — `normalize_document()` falls back to the default for
+older documents and rejects unknown values, so no migration is required.
 
 ### Migrations
 
@@ -247,6 +281,9 @@ window. Repeatable cards can be recreated from state.
 - status communicates `Saving`, `Saved`, `Failed`, `Exported`;
 - destructive actions require confirmation;
 - a scrollbar is shown only when needed;
+- any custom scrollable widget binds `<TouchpadScroll>` as well as
+  `<MouseWheel>` (Tk 9 macOS trackpad, see §15 "UI and data" #7) — don't
+  reuse the bare `CTkScrollableFrame`, copy `ui/components/scrollable.py`;
 - a long editor has fixed Save/Cancel actions;
 - sizes and colors are defined by design tokens;
 - the UI is verified with real screenshots, not just an HTML mockup.
@@ -460,6 +497,16 @@ architecture, the data, distribution, or an irreversible action.
 5. The real layout must be compared against the design spec via screenshots.
 6. A modal editor breaks context; an inline editor is better for a
    sequential form.
+7. On Tk 9.0, macOS trackpad scrolling fires `<TouchpadScroll>` (TIP #684),
+   not `<MouseWheel>` — a physical mouse wheel still sends `<MouseWheel>`.
+   Any custom scroll widget must bind both, or trackpad users get a visible
+   scrollbar that silently does nothing to the wheel/trackpad (only direct
+   scrollbar-drag works). `CTkScrollableFrame` does not bind
+   `<TouchpadScroll>` on its own. Testing scroll handling only with
+   synthetic `<MouseWheel>` events will not catch this — see
+   `wiki/rules/scroll-wheel-binding.md` for the decode logic and the
+   reference implementation in `src/cv_builder/ui/components/scrollable.py`
+   / `preview_canvas.py`.
 
 ### Build
 

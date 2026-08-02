@@ -6,6 +6,8 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
+from cv_builder.domain.themes import DEFAULT_THEME, get_theme
+
 
 EXAMPLE_DATA: dict[str, Any] = {
     "profile": {
@@ -37,6 +39,7 @@ EXAMPLE_DATA: dict[str, Any] = {
         "institution": "UNIVERSITY OR SCHOOL NAME",
         "qualification": "DEGREE OR QUALIFICATION (YEAR - YEAR)",
     },
+    "theme": DEFAULT_THEME,
 }
 
 DEFAULT_DATA: dict[str, Any] = {
@@ -54,12 +57,27 @@ DEFAULT_DATA: dict[str, Any] = {
         "institution": "",
         "qualification": "",
     },
+    "theme": DEFAULT_THEME,
 }
 
 
 def new_document() -> dict[str, Any]:
     """Return an independent, empty CV document."""
     return deepcopy(DEFAULT_DATA)
+
+
+def empty_experience() -> dict[str, Any]:
+    """Return a blank experience entry with every key present."""
+    return {
+        "company": "",
+        "duration": "",
+        "role": "",
+        "dates": "",
+        "place": "",
+        "intro": "",
+        "work": [],
+        "results": [],
+    }
 
 
 def example_document() -> dict[str, Any]:
@@ -99,16 +117,7 @@ def normalize_document(data: dict[str, Any]) -> dict[str, Any]:
     for raw_entry in data["experience"]:
         if not isinstance(raw_entry, dict):
             raise ValueError("Every experience entry must be an object.")
-        entry = {
-            "company": "",
-            "duration": "",
-            "role": "",
-            "dates": "",
-            "place": "",
-            "intro": "",
-            "work": [],
-            "results": [],
-        }
+        entry = empty_experience()
         entry.update({key: value for key, value in raw_entry.items() if key in entry})
         entry["work"] = list(entry.get("work") or [])
         entry["results"] = list(entry.get("results") or [])
@@ -120,6 +129,8 @@ def normalize_document(data: dict[str, Any]) -> dict[str, Any]:
             if key in normalized["education"]
         }
     )
+    # Optional key: documents written before themes existed fall back silently.
+    normalized["theme"] = get_theme(data.get("theme"))["key"]
     return normalized
 
 

@@ -22,7 +22,8 @@ Remove-Item -Recurse -Force build, dist, installer -ErrorAction SilentlyContinue
     --version-file "packaging\windows-version-info.txt" `
     --collect-all reportlab `
     --collect-all customtkinter `
-    app.py
+    --paths src `
+    "src\cv_builder\main.py"
 if ($LASTEXITCODE -ne 0) {
     throw "PyInstaller failed to build CVBuilder.exe."
 }

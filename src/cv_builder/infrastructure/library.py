@@ -10,7 +10,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from cv_model import load_document, new_document, normalize_document, save_document
+from cv_builder.domain.model import (
+    load_document,
+    new_document,
+    normalize_document,
+    save_document,
+)
 
 
 def application_data_dir() -> Path:

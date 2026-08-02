@@ -15,7 +15,10 @@ CV Builder is a local desktop application for creating a structured CV and expor
 - Debounced background autosave
 - Real placeholders that never become CV data
 - Import, export, and downloadable example JSON
-- Export a ready-to-share PDF
+- Preview as the final step of the flow: every page exactly as it will print
+- Seven sidebar colour themes chosen in that step; light or dark plate text is
+  picked automatically by contrast
+- Export a ready-to-share PDF from the editor, the preview step, or the library list
 - Fully offline operation
 
 ## Local CV library
@@ -37,14 +40,18 @@ Python 3.10 or newer is recommended.
 
 ```bash
 python3 -m pip install -r requirements.txt
-python3 app.py
+PYTHONPATH=src python3 -m cv_builder
 ```
+
+The application code lives in `src/cv_builder`, split into `domain`,
+`application`, `infrastructure`, `exporters` and `ui` layers; `src/cv_builder/main.py`
+is the entry point used by the installers.
 
 Run the automated checks:
 
 ```bash
 python3 -m pytest -q
-python3 -m tools.smoke_ui
+python3 tools/smoke_ui.py
 ```
 
 The second command briefly opens the application and verifies the layout and
