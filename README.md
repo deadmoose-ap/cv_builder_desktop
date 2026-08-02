@@ -14,15 +14,17 @@ CV Builder is a local desktop application for creating a structured CV and expor
 - Rename the current CV straight from the editor header
 - Debounced background autosave
 - Real placeholders that never become CV data
-- Import, export, and downloadable example JSON
-- Preview as the final step of the flow: every page exactly as it will print
-- Seven sidebar colour themes chosen in that step; light or dark plate text is
-  picked automatically by contrast
+- Import, export, and a downloadable example JSON (in Settings) for
+  AI-assisted CV drafting — see below
+- Preview as the final step of the flow: every page exactly as it will print,
+  with document options (CV language, sidebar colour) in a side panel next to it
 - Nine languages for the CV itself — English, Russian, German, Spanish, French,
   Japanese, Korean, Traditional and Simplified Chinese — chosen per CV in the
   preview step and stored with the document
 - The same nine languages for the interface, set independently in Settings: a
   Russian window can produce a Japanese CV
+- Seven sidebar colour themes chosen in that step as square swatches; light or
+  dark plate text is picked automatically by contrast
 - Export a ready-to-share PDF from the editor, the preview step, or the library list
 - Fully offline operation
 
@@ -36,8 +38,14 @@ application data directory:
 - Linux: `~/.local/share/cv-builder/documents`
 
 Use **Export JSON** to create a portable backup and **Import JSON** to add an
-edited file back to the library. **Example JSON** downloads a complete sample
-of the supported schema.
+edited file back to the library.
+
+**Example JSON**, in the Settings dialog (gear icon in the library header),
+downloads a complete sample of the supported schema. It exists for AI-assisted
+drafting: hand the sample file to any LLM chat together with a work history,
+and the model can return a filled JSON file with the same structure, ready to
+import back in. Settings includes a ready-to-use prompt for this with a
+one-click copy button.
 
 ## Run from source
 
@@ -127,10 +135,6 @@ Certificates are intentionally not included in this public template. The workflo
 
 Without these secrets, the workflow still produces functional unsigned installers for testing.
 
-## Privacy
-
-All CV data remains on the user's computer. The application has no analytics, accounts, network requests, or cloud storage.
-
 ## Fonts
 
 Latin and Cyrillic CVs are set in Arial from the operating system. Japanese,
@@ -138,6 +142,10 @@ Korean and Chinese CVs are set in Noto Sans JP/KR/SC/TC, bundled in
 `assets/fonts/` and embedded into the exported PDF so the document looks the
 same for whoever opens it. Those faces are licensed under the SIL Open Font
 License 1.1 — see `assets/fonts/OFL.txt`.
+
+## Privacy
+
+All CV data remains on the user's computer. The application has no analytics, accounts, network requests, or cloud storage.
 
 ## License
 
