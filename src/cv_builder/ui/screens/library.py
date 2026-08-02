@@ -10,12 +10,12 @@ from cv_builder.ui.components.scrollable import AutoHideScrollableFrame
 from cv_builder.ui.theme import COLORS, button
 
 
-def format_modified_date(value: str) -> str:
+def format_modified_date(value: str, fallback: str) -> str:
     try:
         timestamp = datetime.fromisoformat(value)
         return timestamp.astimezone().strftime("%d %b %Y, %H:%M")
     except (TypeError, ValueError):
-        return "Recently updated"
+        return fallback
 
 
 class LibraryScreen(ctk.CTkFrame):
@@ -25,6 +25,7 @@ class LibraryScreen(ctk.CTkFrame):
         super().__init__(master, corner_radius=0, fg_color=COLORS["background"])
         self.controller = controller
         self.fonts = controller.fonts
+        self.t = controller.t
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(1, weight=1)
         self._build_header()
@@ -37,31 +38,36 @@ class LibraryScreen(ctk.CTkFrame):
         header.grid_columnconfigure(1, weight=1)
         ctk.CTkLabel(
             header,
-            text=self.controller.app_name,
+            text=self.t("app.name"),
             font=self.fonts.brand,
             text_color=COLORS["text"],
         ).grid(row=0, column=0, sticky="w", padx=(20, 0), pady=12)
         ctk.CTkLabel(
             header,
-            text="Your CV library",
+            text=self.t("library.subtitle"),
             font=self.fonts.small,
             text_color=COLORS["muted"],
         ).grid(row=0, column=1, sticky="w", padx=(18, 10))
 
         actions = ctk.CTkFrame(header, fg_color="transparent")
         actions.grid(row=0, column=2, sticky="e", padx=(0, 18), pady=11)
-        button(
+        # The only application-level settings entry point; the CV's own
+        # language is chosen per document on the Preview step instead.
+        gear = button(
             actions,
             self.fonts,
-            text="Example JSON",
-            command=self.controller.export_example_json,
+            text="⚙",
+            command=self.controller.show_settings,
             variant="ghost",
-            width=104,
-        ).pack(side="left", padx=(0, 4))
+            width=42,
+            height=38,
+        )
+        gear.configure(font=self.fonts.gear)
+        gear.pack(side="left", padx=(0, 6))
         button(
             actions,
             self.fonts,
-            text="Import JSON",
+            text=self.t("library.import_json"),
             command=self.controller.import_json,
             variant="secondary",
             width=96,
@@ -69,7 +75,7 @@ class LibraryScreen(ctk.CTkFrame):
         button(
             actions,
             self.fonts,
-            text="+  New CV",
+            text=self.t("library.new_cv"),
             command=self.controller.create_cv,
             variant="primary",
             width=96,
@@ -82,14 +88,14 @@ class LibraryScreen(ctk.CTkFrame):
         content.grid_rowconfigure(2, weight=1)
         ctk.CTkLabel(
             content,
-            text="YOUR DOCUMENTS",
+            text=self.t("library.eyebrow"),
             font=self.fonts.small_bold,
             text_color=COLORS["muted"],
             anchor="w",
         ).grid(row=0, column=0, sticky="w", padx=44, pady=(34, 0))
         ctk.CTkLabel(
             content,
-            text="Choose a CV to continue",
+            text=self.t("library.title"),
             font=self.fonts.page_title,
             text_color=COLORS["text"],
             anchor="w",
@@ -126,20 +132,20 @@ class LibraryScreen(ctk.CTkFrame):
         empty.grid_columnconfigure(0, weight=1)
         ctk.CTkLabel(
             empty,
-            text="Create your first CV",
+            text=self.t("library.empty_title"),
             font=self.fonts.card_title,
             text_color=COLORS["text"],
         ).grid(row=0, column=0, pady=(34, 5))
         ctk.CTkLabel(
             empty,
-            text="Your changes will be saved automatically on this device.",
+            text=self.t("library.empty_subtitle"),
             font=self.fonts.body,
             text_color=COLORS["muted"],
         ).grid(row=1, column=0)
         button(
             empty,
             self.fonts,
-            text="+  Create CV",
+            text=self.t("library.empty_action"),
             command=self.controller.create_cv,
             variant="primary",
             width=112,
@@ -162,14 +168,19 @@ class LibraryScreen(ctk.CTkFrame):
         ).grid(row=0, column=0, sticky="w")
         ctk.CTkLabel(
             details,
-            text=f"{person}  ·  {completion}% complete",
+            text=self.t("library.card_meta", person=person, percent=completion),
             font=self.fonts.body,
             text_color=COLORS["muted"],
             anchor="w",
         ).grid(row=1, column=0, sticky="w", pady=(4, 0))
         ctk.CTkLabel(
             details,
-            text=f"Updated {format_modified_date(record.updated_at)}",
+            text=self.t(
+                "library.card_updated",
+                date=format_modified_date(
+                    record.updated_at, self.t("library.recently_updated")
+                ),
+            ),
             font=self.fonts.small,
             text_color=COLORS["muted"],
             anchor="w",
@@ -178,17 +189,17 @@ class LibraryScreen(ctk.CTkFrame):
         actions = ctk.CTkFrame(document_card, fg_color="transparent")
         actions.grid(row=0, column=1, sticky="e", padx=(8, 16))
         specs = (
-            ("Open", self.controller.open_library_document, "secondary", 60, (0, 4)),
-            ("PDF", self.controller.export_document_pdf, "secondary", 52, (0, 4)),
-            ("Rename", self.controller.rename_cv, "ghost", 68, (0, 0)),
-            ("Duplicate", self.controller.duplicate_cv, "ghost", 78, (0, 0)),
-            ("Delete", self.controller.delete_cv, "danger", 58, (0, 0)),
+            ("open", self.controller.open_library_document, "secondary", 62, (0, 4)),
+            ("pdf", self.controller.export_document_pdf, "secondary", 52, (0, 4)),
+            ("rename", self.controller.rename_cv, "ghost", 88, (0, 0)),
+            ("duplicate", self.controller.duplicate_cv, "ghost", 88, (0, 0)),
+            ("delete", self.controller.delete_cv, "danger", 72, (0, 0)),
         )
-        for text, command, variant, width, padx in specs:
+        for name, command, variant, width, padx in specs:
             button(
                 actions,
                 self.fonts,
-                text=text,
+                text=self.t(f"library.action.{name}"),
                 command=lambda value=record.id, action=command: action(value),
                 variant=variant,
                 width=width,

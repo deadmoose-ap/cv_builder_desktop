@@ -9,6 +9,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Iterable, Union
 
+from cv_builder.domain.cv_labels import labels
+
 
 @dataclass(frozen=True)
 class Para:
@@ -41,15 +43,17 @@ def _clean(values: Iterable[Any]) -> list[str]:
     return [str(value) for value in values if str(value).strip()]
 
 
-def sidebar_story(profile: dict[str, Any]) -> list[Item]:
+def sidebar_story(data: dict[str, Any]) -> list[Item]:
     """Contact and skills block, drawn on the first page only."""
+    profile = data.get("profile", {})
+    text = labels(data.get("locale"))
     skills = _clean(profile.get("skills", []))
     return [
-        Para("CONTACT", "side_head"),
+        Para(text["contact"], "side_head"),
         Para(str(profile.get("email", "")), "side_body"),
         Para(str(profile.get("linkedin", "")), "side_body"),
         Gap(12),
-        Para("CORE SKILLS", "side_head"),
+        Para(text["core_skills"], "side_head"),
         Para("\n".join(skills), "side_body"),
     ]
 
@@ -57,14 +61,15 @@ def sidebar_story(profile: dict[str, Any]) -> list[Item]:
 def main_story(data: dict[str, Any]) -> list[Item]:
     """Profile, summary, experience and education in reading order."""
     profile = data.get("profile", {})
+    text = labels(data.get("locale"))
     story: list[Item] = [
         Para(str(profile.get("name", "")), "name"),
         Para(str(profile.get("headline", "")), "headline"),
         Para(str(profile.get("location", "")), "location"),
-        Para("SUMMARY", "section"),
+        Para(text["summary"], "section"),
     ]
     story += [Para(value) for value in _clean(profile.get("summary", []))]
-    story.append(Para("EXPERIENCE", "section"))
+    story.append(Para(text["experience"], "section"))
 
     for item in data.get("experience", []):
         header = [Para(str(item.get("company", "")), "company")]
@@ -77,17 +82,18 @@ def main_story(data: dict[str, Any]) -> list[Item]:
         story.append(Group(tuple(header)))
         if item.get("intro"):
             story += [Gap(5), Para(str(item["intro"]))]
-        for label, key in (("KEY RESPONSIBILITIES", "work"), ("RESULTS", "results")):
+        for label_key, key in (("key_responsibilities", "work"), ("results", "results")):
             values = _clean(item.get(key, []))
             if not values:
                 continue
-            story.append(Para(f"{label}:\n{BULLET}{values[0]}"))
+            label = f"{text[label_key]}{text['list_suffix']}"
+            story.append(Para(f"{label}\n{BULLET}{values[0]}"))
             story += [Para(f"{BULLET}{value}", "bullet") for value in values[1:]]
         story.append(Gap(12))
 
     education = data.get("education", {})
     story += [
-        Para("EDUCATION", "section"),
+        Para(text["education"], "section"),
         Para(str(education.get("institution", "")), "company"),
         Para(str(education.get("qualification", "")), "dates"),
     ]

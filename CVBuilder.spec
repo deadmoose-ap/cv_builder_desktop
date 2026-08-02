@@ -1,7 +1,9 @@
 # -*- mode: python ; coding: utf-8 -*-
 from PyInstaller.utils.hooks import collect_all
 
-datas = []
+# The CJK faces a Japanese/Korean/Chinese CV is set in. Without this entry the
+# bundled branch of exporters/pdf.py never resolves and those CVs export blank.
+datas = [('assets/fonts', 'assets/fonts')]
 binaries = []
 hiddenimports = []
 tmp_ret = collect_all('reportlab')

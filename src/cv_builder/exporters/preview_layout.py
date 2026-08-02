@@ -12,6 +12,8 @@ from typing import Any
 from reportlab.pdfbase import pdfmetrics
 
 from cv_builder.domain import themes
+from cv_builder.domain.cv_labels import page_label
+from cv_builder.domain.locales import is_cjk
 from cv_builder.exporters import page_style
 from cv_builder.exporters.story import Gap, Group, Item, Para, main_story, sidebar_story
 from cv_builder.exporters.pdf import register_fonts
@@ -38,26 +40,41 @@ class Page:
     lines: list[Line] = field(default_factory=list)
 
 
-def _text_width(text: str, size: float) -> float:
-    return pdfmetrics.stringWidth(text, FONT_NAME, size)
+def _text_width(text: str, size: float, font: str) -> float:
+    return pdfmetrics.stringWidth(text, font, size)
 
 
-def _wrap(text: str, size: float, width: float, left: float, first: float) -> list[tuple[float, str]]:
-    """Break text into (x offset, line) pairs; ``\\n`` forces a break."""
+def _wrap(
+    text: str,
+    size: float,
+    width: float,
+    left: float,
+    first: float,
+    font: str,
+    cjk: bool = False,
+) -> list[tuple[float, str]]:
+    """Break text into (x offset, line) pairs; ``\\n`` forces a break.
+
+    ``cjk`` mirrors ReportLab's ``wordWrap="CJK"``: scripts written without
+    spaces break between characters instead of between words.
+    """
     result: list[tuple[float, str]] = []
     for raw in text.split("\n"):
-        words = raw.split()
-        if not words:
+        units = list(raw.strip()) if cjk else raw.split()
+        if not units:
             result.append((left, ""))
             continue
         current = ""
-        for word in words:
+        for unit in units:
             offset = left + first if not result else left
             available = width - offset
-            candidate = f"{current} {word}" if current else word
-            if current and _text_width(candidate, size) > available:
+            if cjk:
+                candidate = current + unit
+            else:
+                candidate = f"{current} {unit}" if current else unit
+            if current and _text_width(candidate, size, font) > available:
                 result.append((offset, current))
-                current = word
+                current = unit
             else:
                 current = candidate
         result.append((left + first if not result else left, current))
@@ -67,8 +84,19 @@ def _wrap(text: str, size: float, width: float, left: float, first: float) -> li
 class _Flow:
     """Places paragraphs down a column, starting a new page when needed."""
 
-    def __init__(self, sidebar_color: str, top: float, bottom: float, x: float, width: float):
+    def __init__(
+        self,
+        sidebar_color: str,
+        top: float,
+        bottom: float,
+        x: float,
+        width: float,
+        font: str = FONT_NAME,
+        cjk: bool = False,
+    ):
         self.sidebar_color = sidebar_color
+        self.font = font
+        self.cjk = cjk
         self.top = top
         self.bottom = bottom
         self.x = x
@@ -95,6 +123,8 @@ class _Flow:
             self.width,
             definition["left_indent"],
             definition["first_line_indent"],
+            self.font,
+            self.cjk,
         )
         self.y += definition["space_before"]
         index = 0
@@ -120,6 +150,8 @@ class _Flow:
             self.width,
             definition["left_indent"],
             definition["first_line_indent"],
+            self.font,
+            self.cjk,
         )
         return (
             definition["space_before"]
@@ -143,7 +175,11 @@ class _Flow:
 
 def build_pages(data: dict[str, Any]) -> list[Page]:
     """Return every page of the CV as positioned lines."""
-    register_fonts()
+    locale = data.get("locale")
+    # Measuring with the very font the export embeds is what keeps the preview
+    # from drifting: a CJK CV wraps on screen exactly where the PDF wraps it.
+    font = register_fonts(locale)
+    cjk = is_cjk(locale)
     theme = themes.get_theme(data.get("theme"))
     sidebar_color = theme["color"]
 
@@ -153,6 +189,8 @@ def build_pages(data: dict[str, Any]) -> list[Page]:
         page_style.PAGE_HEIGHT - page_style.MAIN_BOTTOM,
         page_style.MAIN_X,
         page_style.MAIN_WIDTH,
+        font,
+        cjk,
     )
     flow.add(main_story(data))
     pages = flow.pages
@@ -163,8 +201,10 @@ def build_pages(data: dict[str, Any]) -> list[Page]:
         page_style.PAGE_HEIGHT - page_style.MAIN_BOTTOM,
         page_style.SIDEBAR_X,
         page_style.SIDEBAR_TEXT_WIDTH,
+        font,
+        cjk,
     )
-    sidebar.add(sidebar_story(data.get("profile", {})), paginate=False)
+    sidebar.add(sidebar_story(data), paginate=False)
     pages[0].lines.extend(sidebar.pages[0].lines)
 
     for number, page in enumerate(pages, start=1):
@@ -172,7 +212,7 @@ def build_pages(data: dict[str, Any]) -> list[Page]:
             Line(
                 page_style.PAGE_WIDTH - page_style.PAGE_NUMBER_RIGHT,
                 page_style.PAGE_HEIGHT - page_style.PAGE_NUMBER_BOTTOM,
-                f"Page {number}",
+                page_label(locale, number),
                 page_style.PAGE_NUMBER_SIZE,
                 page_style.PAGE_NUMBER_COLOR,
                 anchor="se",

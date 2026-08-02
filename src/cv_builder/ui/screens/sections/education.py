@@ -5,7 +5,6 @@ import tkinter as tk
 from typing import Any
 
 from cv_builder.ui.components.fields import card, form_field, section_header
-from cv_builder.ui.placeholders import PLACEHOLDERS
 from cv_builder.ui.screens.sections.base import Section
 
 
@@ -15,10 +14,10 @@ class EducationSection(Section):
         section_header(
             self,
             self.fonts,
-            step="Section 4 of 5",
-            title="Education",
-            subtitle="Add the qualification most relevant to this CV.",
-            action_text="Preview  →",
+            step=self.step(4),
+            title=self.t("education.title"),
+            subtitle=self.t("education.subtitle"),
+            action_text=self.t("education.action"),
             action_command=lambda: self.controller.show_section("preview"),
         )
         form = card(self)
@@ -30,9 +29,9 @@ class EducationSection(Section):
         form_field(
             form,
             self.fonts,
-            label="Institution",
+            label=self.t("education.institution"),
             variable=self.vars["institution"],
-            placeholder=PLACEHOLDERS["institution"],
+            placeholder=self.placeholders["institution"],
             row=0,
             padx=22,
             pady=(22, 14),
@@ -40,9 +39,9 @@ class EducationSection(Section):
         form_field(
             form,
             self.fonts,
-            label="Qualification and dates",
+            label=self.t("education.qualification"),
             variable=self.vars["qualification"],
-            placeholder=PLACEHOLDERS["qualification"],
+            placeholder=self.placeholders["qualification"],
             row=1,
             padx=22,
             pady=(0, 22),

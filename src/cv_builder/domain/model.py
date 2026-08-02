@@ -6,6 +6,7 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
+from cv_builder.domain.locales import DEFAULT_LOCALE, get_locale
 from cv_builder.domain.themes import DEFAULT_THEME, get_theme
 
 
@@ -40,6 +41,7 @@ EXAMPLE_DATA: dict[str, Any] = {
         "qualification": "DEGREE OR QUALIFICATION (YEAR - YEAR)",
     },
     "theme": DEFAULT_THEME,
+    "locale": DEFAULT_LOCALE,
 }
 
 DEFAULT_DATA: dict[str, Any] = {
@@ -58,6 +60,7 @@ DEFAULT_DATA: dict[str, Any] = {
         "qualification": "",
     },
     "theme": DEFAULT_THEME,
+    "locale": DEFAULT_LOCALE,
 }
 
 
@@ -129,8 +132,10 @@ def normalize_document(data: dict[str, Any]) -> dict[str, Any]:
             if key in normalized["education"]
         }
     )
-    # Optional key: documents written before themes existed fall back silently.
+    # Optional keys: documents written before themes or locales existed fall
+    # back silently, so no migration or schema_version bump is required.
     normalized["theme"] = get_theme(data.get("theme"))["key"]
+    normalized["locale"] = get_locale(data.get("locale"))["code"]
     return normalized
 
 

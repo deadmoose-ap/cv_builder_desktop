@@ -89,6 +89,22 @@ def main() -> None:
         app.update_idletasks()
         assert app.data["theme"] == "mint"
         assert preview.selected_theme == "mint"
+
+        # The CV's language and the interface language switch independently.
+        preview.select_locale("ja")
+        app.update_idletasks()
+        assert app.data["locale"] == "ja"
+        assert app.settings.ui_locale == "en"
+
+        app.set_ui_locale("ru")
+        app.update_idletasks()
+        assert app.settings.ui_locale == "ru"
+        assert app.t("editor.all_cvs") == "Все резюме"
+        assert app.editor_view.profile.entries["name"].placeholder_text == "ВАШЕ ИМЯ"
+        assert app.data["locale"] == "ja", "the CV keeps its own language"
+        app.set_ui_locale("en")
+        app.update_idletasks()
+
         app.show_section("profile")
         app.update_idletasks()
         app.after(800, finish)
@@ -104,6 +120,7 @@ def main() -> None:
         stored = library.load_document(record.id)
         assert stored["experience"][0]["role"] == "UI SMOKE ROLE"
         assert stored["theme"] == "mint"
+        assert stored["locale"] == "ja"
         print(f"window={width}x{height}")
         print(
             f"library={app.library_view.winfo_width()}x"

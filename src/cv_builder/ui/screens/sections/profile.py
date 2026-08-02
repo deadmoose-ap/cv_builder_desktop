@@ -8,7 +8,6 @@ import customtkinter as ctk
 
 from cv_builder.domain.text import split_lines
 from cv_builder.ui.components.fields import card, form_field, section_header, textbox
-from cv_builder.ui.placeholders import PLACEHOLDERS
 from cv_builder.ui.screens.sections.base import Section
 from cv_builder.ui.theme import COLORS
 
@@ -20,12 +19,13 @@ class ProfileSection(Section):
     def build(self) -> None:
         self.vars: dict[str, tk.StringVar] = {}
         self.entries: dict[str, Any] = {}
+        placeholders = self.placeholders
         section_header(
             self,
             self.fonts,
-            step="Section 1 of 5",
-            title="Profile",
-            subtitle="The essential details shown at the top of your CV.",
+            step=self.step(1),
+            title=self.t("profile.title"),
+            subtitle=self.t("profile.subtitle"),
         )
         form = card(self)
         form.grid(row=1, column=0, sticky="new", padx=36, pady=(0, 30))
@@ -37,9 +37,9 @@ class ProfileSection(Section):
         self.entries["name"] = form_field(
             form,
             self.fonts,
-            label="Full name",
+            label=self.t("profile.name"),
             variable=self.vars["name"],
-            placeholder=PLACEHOLDERS["name"],
+            placeholder=placeholders["name"],
             row=0,
             columnspan=2,
             padx=22,
@@ -48,9 +48,9 @@ class ProfileSection(Section):
         self.entries["headline"] = form_field(
             form,
             self.fonts,
-            label="Professional headline",
+            label=self.t("profile.headline"),
             variable=self.vars["headline"],
-            placeholder=PLACEHOLDERS["headline"],
+            placeholder=placeholders["headline"],
             row=1,
             columnspan=2,
             padx=22,
@@ -58,9 +58,9 @@ class ProfileSection(Section):
         self.entries["location"] = form_field(
             form,
             self.fonts,
-            label="Location",
+            label=self.t("profile.location"),
             variable=self.vars["location"],
-            placeholder=PLACEHOLDERS["location"],
+            placeholder=placeholders["location"],
             row=2,
             column=0,
             padx=(22, 7),
@@ -68,9 +68,9 @@ class ProfileSection(Section):
         self.entries["email"] = form_field(
             form,
             self.fonts,
-            label="Email",
+            label=self.t("profile.email"),
             variable=self.vars["email"],
-            placeholder=PLACEHOLDERS["email"],
+            placeholder=placeholders["email"],
             row=2,
             column=1,
             padx=(7, 22),
@@ -78,9 +78,9 @@ class ProfileSection(Section):
         self.entries["linkedin"] = form_field(
             form,
             self.fonts,
-            label="LinkedIn or website",
+            label=self.t("profile.linkedin"),
             variable=self.vars["linkedin"],
-            placeholder=PLACEHOLDERS["linkedin"],
+            placeholder=placeholders["linkedin"],
             row=3,
             columnspan=2,
             padx=22,
@@ -98,14 +98,14 @@ class ProfileSection(Section):
         skills_group.grid_columnconfigure(0, weight=1)
         ctk.CTkLabel(
             skills_group,
-            text="Core skills",
+            text=self.t("profile.skills"),
             font=self.fonts.label,
             text_color=COLORS["text"],
             anchor="w",
         ).grid(row=0, column=0, sticky="w")
         ctk.CTkLabel(
             skills_group,
-            text="One skill per line",
+            text=self.t("profile.skills_hint"),
             font=self.fonts.small,
             text_color=COLORS["muted"],
             anchor="e",
@@ -114,7 +114,7 @@ class ProfileSection(Section):
             skills_group,
             self.fonts,
             height=118,
-            placeholder=PLACEHOLDERS["skills"],
+            placeholder=placeholders["skills"],
         )
         self.skills_text.grid(
             row=1, column=0, columnspan=2, sticky="ew", pady=(6, 0)

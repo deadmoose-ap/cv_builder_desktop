@@ -158,6 +158,11 @@ CV Builder crossed that line at ~1970 lines and was split (2026-08-01):
 
 Entry point: `src/cv_builder/main.py` (also `python -m cv_builder`), which
 still serves `--smoke-test` and `--ui-smoke-test` inside the frozen app.
+`--smoke-test <path> --locale <code>` additionally asserts that the bundled
+font for that language really shipped: font lookup falls back to the Latin face
+when the file is absent, so without this check a build missing its fonts still
+exports a PDF — blank where the CJK text should be, and only on machines
+without a matching system font.
 
 ## 5. Domain model and data
 
@@ -299,7 +304,30 @@ For future applications, define upfront:
 - screen-reader limitations of the chosen toolkit.
 
 UI strings should be extracted from widgets before a second language is
-added.
+added. CV Builder now does this: interface copy lives in `ui/strings/<code>.py`
+behind a `Translator` (`ui/i18n.py`), and switching language rebuilds the
+screens rather than binding a variable per label — the document lives in the
+controller, not in the widgets, so nothing is lost by recreating them.
+
+Two localizations that look similar are in fact independent, and conflating
+them is the mistake to avoid:
+
+| | Document language | Interface language |
+|---|---|---|
+| Scope | headings printed inside the exported file | the application window |
+| Stored in | the document JSON (`locale`) | app settings beside the library |
+| Layer | `domain/` + `exporters/` | `ui/` + `infrastructure/settings.py` |
+
+Two things are easy to miss when adding a CJK language:
+
+- the PDF font must actually contain the glyphs — Arial covers Cyrillic but
+  no CJK at all, so those locales need their own embedded face, and the
+  bundled resource must be declared in **both** build scripts;
+- the toolkit's default UI font must too: CustomTkinter asks for `SF Display`
+  / `Roboto`, neither of which has a CJK glyph.
+
+Scripts written without spaces also need character-level line breaking in
+every renderer, not just the exporter.
 
 ## 8. Export adapters
 
@@ -593,6 +621,7 @@ The application is done when:
 3. Add `schema_version` and migrations.
 4. Add a Windows UI smoke test to GitHub Actions.
 5. Automate a GitHub Release after a signed tag build.
-6. Add a localization layer before translating the interface.
+6. ~~Add a localization layer before translating the interface.~~ Done —
+   nine languages, `ui/i18n.py` + `domain/cv_labels.py`.
 7. Add backup/restore of the whole library as a single archive.
 </content>

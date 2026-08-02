@@ -18,6 +18,11 @@ CV Builder is a local desktop application for creating a structured CV and expor
 - Preview as the final step of the flow: every page exactly as it will print
 - Seven sidebar colour themes chosen in that step; light or dark plate text is
   picked automatically by contrast
+- Nine languages for the CV itself — English, Russian, German, Spanish, French,
+  Japanese, Korean, Traditional and Simplified Chinese — chosen per CV in the
+  preview step and stored with the document
+- The same nine languages for the interface, set independently in Settings: a
+  Russian window can produce a Japanese CV
 - Export a ready-to-share PDF from the editor, the preview step, or the library list
 - Fully offline operation
 
@@ -125,6 +130,14 @@ Without these secrets, the workflow still produces functional unsigned installer
 ## Privacy
 
 All CV data remains on the user's computer. The application has no analytics, accounts, network requests, or cloud storage.
+
+## Fonts
+
+Latin and Cyrillic CVs are set in Arial from the operating system. Japanese,
+Korean and Chinese CVs are set in Noto Sans JP/KR/SC/TC, bundled in
+`assets/fonts/` and embedded into the exported PDF so the document looks the
+same for whoever opens it. Those faces are licensed under the SIL Open Font
+License 1.1 — see `assets/fonts/OFL.txt`.
 
 ## License
 

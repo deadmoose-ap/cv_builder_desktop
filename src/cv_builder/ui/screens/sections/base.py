@@ -9,6 +9,9 @@ import customtkinter as ctk
 from cv_builder.ui.theme import COLORS, Fonts
 
 
+SECTION_COUNT = 5
+
+
 class Section(ctk.CTkFrame):
     """A page of the editor. Owns its widgets and its part of the document."""
 
@@ -24,8 +27,16 @@ class Section(ctk.CTkFrame):
         self.fonts = fonts
         self.on_change = on_change
         self.controller = controller
+        # Interface copy comes from the controller so a section never carries a
+        # hard-coded string ([LYR], DESKTOP_APP_ARCHITECTURE.md §7).
+        self.t = controller.t
+        self.placeholders = controller.placeholders
         self.grid_columnconfigure(0, weight=1)
         self.build()
+
+    def step(self, number: int) -> str:
+        """The 'Section N of 5' eyebrow above a section title."""
+        return self.t("section.step", current=number, total=SECTION_COUNT)
 
     def build(self) -> None:
         """Create the widgets. Subclasses must implement."""

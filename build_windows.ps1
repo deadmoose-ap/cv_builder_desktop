@@ -19,6 +19,7 @@ Remove-Item -Recurse -Force build, dist, installer -ErrorAction SilentlyContinue
     --windowed `
     --name CVBuilder `
     --icon "assets\CVBuilder.ico" `
+    --add-data "assets\fonts;assets\fonts" `
     --version-file "packaging\windows-version-info.txt" `
     --collect-all reportlab `
     --collect-all customtkinter `

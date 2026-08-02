@@ -12,16 +12,16 @@ from cv_builder.domain.model import empty_experience
 from cv_builder.domain.text import split_lines
 from cv_builder.ui.components.fields import card, form_field, section_header, textbox
 from cv_builder.ui.components.scrollable import AutoHideScrollableFrame
-from cv_builder.ui.placeholders import PLACEHOLDERS
 from cv_builder.ui.screens.sections.base import Section
 from cv_builder.ui.theme import COLORS, button
 
 
 ENTRY_FIELDS = ("company", "duration", "role", "dates", "place")
+# (translation key, document key, textbox height, needs the one-per-line hint)
 TEXT_FIELDS = (
-    ("Role or project description", "intro", 72, None),
-    ("Key responsibilities", "work", 94, "One item per line"),
-    ("Results", "results", 86, "One item per line"),
+    ("experience.intro", "intro", 72, False),
+    ("experience.work", "work", 94, True),
+    ("experience.results", "results", 86, True),
 )
 
 
@@ -33,17 +33,17 @@ class ExperienceSection(Section):
         self.editing_index: int | None = None
         self.selection: int | None = None
         self.editor_open = False
-        self.title = tk.StringVar(value="Experience")
-        self.subtitle = tk.StringVar(value="Put the most relevant role first.")
+        self.title = tk.StringVar(value=self.t("experience.title"))
+        self.subtitle = tk.StringVar(value=self.t("experience.subtitle"))
 
         self.grid_rowconfigure(1, weight=1)
         self.add_button = section_header(
             self,
             self.fonts,
-            step="Section 3 of 5",
+            step=self.step(3),
             title=self.title,
             subtitle=self.subtitle,
-            action_text="+  Add role",
+            action_text=self.t("experience.add_action"),
             action_command=self.add_entry,
         )
 
@@ -103,9 +103,9 @@ class ExperienceSection(Section):
         self.company_entry = form_field(
             form,
             self.fonts,
-            label="Company",
+            label=self.t("experience.company"),
             variable=self.editor_vars["company"],
-            placeholder=PLACEHOLDERS["company"],
+            placeholder=self.placeholders["company"],
             row=0,
             columnspan=2,
             padx=22,
@@ -114,9 +114,9 @@ class ExperienceSection(Section):
         form_field(
             form,
             self.fonts,
-            label="Role",
+            label=self.t("experience.role"),
             variable=self.editor_vars["role"],
-            placeholder=PLACEHOLDERS["role"],
+            placeholder=self.placeholders["role"],
             row=1,
             columnspan=2,
             padx=22,
@@ -125,9 +125,9 @@ class ExperienceSection(Section):
         form_field(
             form,
             self.fonts,
-            label="Dates",
+            label=self.t("experience.dates"),
             variable=self.editor_vars["dates"],
-            placeholder=PLACEHOLDERS["dates"],
+            placeholder=self.placeholders["dates"],
             row=2,
             column=0,
             padx=(22, 7),
@@ -136,9 +136,9 @@ class ExperienceSection(Section):
         form_field(
             form,
             self.fonts,
-            label="Total duration",
+            label=self.t("experience.duration"),
             variable=self.editor_vars["duration"],
-            placeholder=PLACEHOLDERS["duration"],
+            placeholder=self.placeholders["duration"],
             row=2,
             column=1,
             padx=(7, 22),
@@ -147,16 +147,16 @@ class ExperienceSection(Section):
         form_field(
             form,
             self.fonts,
-            label="Location",
+            label=self.t("experience.place"),
             variable=self.editor_vars["place"],
-            placeholder=PLACEHOLDERS["place"],
+            placeholder=self.placeholders["place"],
             row=3,
             columnspan=2,
             padx=22,
             pady=(0, 12),
         )
 
-        for row, (label, key, height, hint) in enumerate(TEXT_FIELDS, start=4):
+        for row, (label_key, key, height, hint) in enumerate(TEXT_FIELDS, start=4):
             group = ctk.CTkFrame(form, fg_color="transparent")
             group.grid(
                 row=row,
@@ -169,7 +169,7 @@ class ExperienceSection(Section):
             group.grid_columnconfigure(0, weight=1)
             ctk.CTkLabel(
                 group,
-                text=label,
+                text=self.t(label_key),
                 font=self.fonts.label,
                 text_color=COLORS["text"],
                 anchor="w",
@@ -177,7 +177,7 @@ class ExperienceSection(Section):
             if hint:
                 ctk.CTkLabel(
                     group,
-                    text=hint,
+                    text=self.t("experience.line_hint"),
                     font=self.fonts.small,
                     text_color=COLORS["muted"],
                     anchor="e",
@@ -186,7 +186,7 @@ class ExperienceSection(Section):
                 group,
                 self.fonts,
                 height=height,
-                placeholder=PLACEHOLDERS[key],
+                placeholder=self.placeholders[key],
             )
             widget.grid(row=1, column=0, columnspan=2, sticky="ew", pady=(6, 0))
             self.editor_texts[key] = widget
@@ -198,7 +198,7 @@ class ExperienceSection(Section):
         button(
             actions,
             self.fonts,
-            text="Save entry",
+            text=self.t("experience.save_entry"),
             command=self.save_entry,
             variant="primary",
             width=106,
@@ -206,7 +206,7 @@ class ExperienceSection(Section):
         button(
             actions,
             self.fonts,
-            text="Cancel",
+            text=self.t("action.cancel"),
             command=self.cancel_edit,
             variant="secondary",
             width=76,
@@ -225,18 +225,18 @@ class ExperienceSection(Section):
 
     def show_list(self) -> None:
         self.editor_open = False
-        self.title.set("Experience")
-        self.subtitle.set("Put the most relevant role first.")
+        self.title.set(self.t("experience.title"))
+        self.subtitle.set(self.t("experience.subtitle"))
         self.add_button.grid()
         self.list_view.tkraise()
         self.scroll._schedule_scrollbar_check()
 
     def _show_editor(self, *, is_new: bool) -> None:
         self.editor_open = True
-        self.title.set("Add experience" if is_new else "Edit experience")
-        self.subtitle.set(
-            "Describe the role, responsibilities and measurable results."
+        self.title.set(
+            self.t("experience.add_title" if is_new else "experience.edit_title")
         )
+        self.subtitle.set(self.t("experience.edit_subtitle"))
         self.add_button.grid_remove()
         self.editor_view.tkraise()
         self.editor_scroll._schedule_scrollbar_check()
@@ -267,20 +267,20 @@ class ExperienceSection(Section):
         empty.grid_columnconfigure(0, weight=1)
         ctk.CTkLabel(
             empty,
-            text="No experience added yet",
+            text=self.t("experience.empty_title"),
             font=self.fonts.card_title,
             text_color=COLORS["text"],
         ).grid(row=0, column=0, pady=(28, 4))
         ctk.CTkLabel(
             empty,
-            text="Add a role to show your responsibilities and impact.",
+            text=self.t("experience.empty_subtitle"),
             font=self.fonts.small,
             text_color=COLORS["muted"],
         ).grid(row=1, column=0)
         button(
             empty,
             self.fonts,
-            text="+  Add your first role",
+            text=self.t("experience.empty_action"),
             command=self.add_entry,
             variant="primary",
             width=154,
@@ -296,14 +296,14 @@ class ExperienceSection(Section):
         content.grid_columnconfigure(0, weight=1)
         ctk.CTkLabel(
             content,
-            text=item.get("role") or "Untitled role",
+            text=item.get("role") or self.t("experience.untitled_role"),
             font=self.fonts.card_title,
             text_color=COLORS["text"],
             anchor="w",
         ).grid(row=0, column=0, sticky="w")
         ctk.CTkLabel(
             content,
-            text=item.get("company") or "Company not specified",
+            text=item.get("company") or self.t("experience.no_company"),
             font=self.fonts.body,
             text_color=COLORS["text"],
             anchor="w",
@@ -327,7 +327,7 @@ class ExperienceSection(Section):
         button(
             actions,
             self.fonts,
-            text="Edit",
+            text=self.t("experience.action.edit"),
             command=lambda value=index: self.edit_entry(value),
             variant="secondary",
             width=56,
@@ -354,7 +354,7 @@ class ExperienceSection(Section):
         button(
             actions,
             self.fonts,
-            text="Delete",
+            text=self.t("experience.action.delete"),
             command=lambda value=index: self.delete_entry(value),
             variant="danger",
             width=60,
@@ -385,8 +385,8 @@ class ExperienceSection(Section):
             index = self.selected_index()
         if index is None or not 0 <= index < len(self.entries):
             messagebox.showinfo(
-                "Select an entry",
-                "Select an experience entry first.",
+                self.t("dialog.select_entry.title"),
+                self.t("dialog.select_entry.message"),
                 parent=self,
             )
             return
@@ -403,8 +403,8 @@ class ExperienceSection(Section):
         item = {key: variable.get().strip() for key, variable in self.editor_vars.items()}
         if not item["company"] or not item["role"]:
             messagebox.showwarning(
-                "Missing information",
-                "Company and role are required.",
+                self.t("dialog.missing_info.title"),
+                self.t("dialog.missing_info.message"),
                 parent=self,
             )
             return
@@ -432,8 +432,8 @@ class ExperienceSection(Section):
         if index is None or not 0 <= index < len(self.entries):
             return
         if messagebox.askyesno(
-            "Delete entry",
-            "Delete this experience entry?",
+            self.t("dialog.delete_entry.title"),
+            self.t("dialog.delete_entry.message"),
             parent=self,
         ):
             del self.entries[index]

@@ -14,13 +14,7 @@ from cv_builder.ui.theme import COLORS, button
 
 
 SECTION_ORDER = ("profile", "summary", "experience", "education", "preview")
-NAV_LABELS = {
-    "profile": "1    Profile",
-    "summary": "2    Summary",
-    "experience": "3    Experience",
-    "education": "4    Education",
-    "preview": "5    Preview",
-}
+# Nav copy lives in `ui/strings/`; the order is what this module owns.
 # Sections that hold form data; `preview` renders them.
 FORM_SECTIONS = SECTION_ORDER[:-1]
 
@@ -32,6 +26,7 @@ class EditorScreen(ctk.CTkFrame):
         super().__init__(master, corner_radius=0, fg_color=COLORS["background"])
         self.controller = controller
         self.fonts = controller.fonts
+        self.t = controller.t
         self.nav_buttons: dict[str, ctk.CTkButton] = {}
         self.sections: dict[str, Any] = {}
         self.grid_columnconfigure(0, weight=1)
@@ -49,7 +44,7 @@ class EditorScreen(ctk.CTkFrame):
         header.grid_columnconfigure(2, weight=1)
         ctk.CTkLabel(
             header,
-            text=self.controller.app_name,
+            text=self.t("app.name"),
             font=self.fonts.brand,
             text_color=COLORS["text"],
         ).grid(row=0, column=0, sticky="w", padx=(20, 0), pady=12)
@@ -79,7 +74,7 @@ class EditorScreen(ctk.CTkFrame):
         button(
             actions,
             self.fonts,
-            text="All CVs",
+            text=self.t("editor.all_cvs"),
             command=self.controller.show_library,
             variant="ghost",
             width=70,
@@ -87,7 +82,7 @@ class EditorScreen(ctk.CTkFrame):
         button(
             actions,
             self.fonts,
-            text="Export JSON",
+            text=self.t("editor.export_json"),
             command=self.controller.export_current_json,
             variant="secondary",
             width=96,
@@ -96,7 +91,7 @@ class EditorScreen(ctk.CTkFrame):
         self.export_pdf_button = button(
             actions,
             self.fonts,
-            text="Export PDF",
+            text=self.t("editor.export_pdf"),
             command=self.controller.generate,
             variant="primary",
             width=112,
@@ -166,7 +161,7 @@ class EditorScreen(ctk.CTkFrame):
 
         ctk.CTkLabel(
             sidebar,
-            text="BUILD YOUR CV",
+            text=self.t("editor.build_your_cv"),
             font=self.fonts.small_bold,
             text_color=COLORS["muted"],
             anchor="w",
@@ -194,7 +189,7 @@ class EditorScreen(ctk.CTkFrame):
         for row, section in enumerate(SECTION_ORDER):
             nav_button = ctk.CTkButton(
                 navigation,
-                text=NAV_LABELS[section],
+                text=self.t(f"nav.{section}"),
                 command=lambda value=section: self.controller.show_section(value),
                 height=44,
                 corner_radius=9,
@@ -210,7 +205,7 @@ class EditorScreen(ctk.CTkFrame):
 
         ctk.CTkLabel(
             sidebar,
-            text="Local and private\nYour data stays on this device.",
+            text=self.t("editor.privacy"),
             font=self.fonts.small,
             text_color=COLORS["muted"],
             justify="left",

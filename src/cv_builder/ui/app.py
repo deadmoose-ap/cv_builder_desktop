@@ -14,11 +14,16 @@ import customtkinter as ctk
 from cv_builder.application.document_service import DocumentService
 from cv_builder.domain.completion import calculate_completion
 from cv_builder.infrastructure.library import CVLibrary
+from cv_builder.infrastructure.settings import SettingsStore
+from cv_builder.ui.i18n import Translator, placeholders
 from cv_builder.ui.screens.editor import SECTION_ORDER, EditorScreen
 from cv_builder.ui.screens.library import LibraryScreen
+from cv_builder.ui.screens.settings_dialog import SettingsDialog
 from cv_builder.ui.theme import COLORS, Fonts
 
 
+# The product name is a brand, identical in every locale; the interface copy
+# under "app.name" carries the same value for the in-window wordmark.
 APP_NAME = "CV Builder"
 AUTOSAVE_DELAY_MS = 650
 
@@ -29,14 +34,13 @@ ctk.set_default_color_theme("blue")
 class CVBuilderApp(ctk.CTk):
     """Root window. Owns the open document and the navigation between screens."""
 
-    app_name = APP_NAME
-
     def __init__(
         self,
         library: CVLibrary | None = None,
         *,
         show_library_on_start: bool = True,
         service: DocumentService | None = None,
+        settings: SettingsStore | None = None,
     ):
         super().__init__(fg_color=COLORS["background"])
         self.title(APP_NAME)
@@ -46,6 +50,12 @@ class CVBuilderApp(ctk.CTk):
         self.grid_rowconfigure(0, weight=1)
 
         self.service = service or DocumentService(library)
+        # Settings live beside the library so a test or smoke run pointed at a
+        # temporary directory never touches the real preferences file.
+        self.settings_store = settings or SettingsStore(self.service.library.root)
+        self.settings = self.settings_store.load()
+        self.t = Translator(self.settings.ui_locale)
+        self.placeholders = placeholders(self.settings.ui_locale)
         self.data = self.service.new_document()
         self.current_document_id: str | None = None
         self.current_document_title = ""
@@ -55,15 +65,12 @@ class CVBuilderApp(ctk.CTk):
         self._autosave_job: str | None = None
         self._title_commit_in_progress = False
 
-        self.status = tk.StringVar(value="Local CV library")
+        self.status = tk.StringVar(value=self.t("status.library"))
         self.document_title_var = tk.StringVar(value="")
-        self.progress_text = tk.StringVar(value="0% complete")
+        self.progress_text = tk.StringVar(value=self.t("status.progress", percent=0))
 
-        self.fonts = Fonts()
-        self.editor_view = EditorScreen(self, controller=self)
-        self.library_view = LibraryScreen(self, controller=self)
-        for view in (self.editor_view, self.library_view):
-            view.grid(row=0, column=0, sticky="nsew")
+        self.fonts = Fonts(self.settings.ui_locale)
+        self._build_screens()
 
         self.populate_form()
         self.show_section("profile")
@@ -81,6 +88,48 @@ class CVBuilderApp(ctk.CTk):
     @property
     def library(self) -> CVLibrary:
         return self.service.library
+
+    def _build_screens(self) -> None:
+        self.editor_view = EditorScreen(self, controller=self)
+        self.library_view = LibraryScreen(self, controller=self)
+        for view in (self.editor_view, self.library_view):
+            view.grid(row=0, column=0, sticky="nsew")
+
+    # --- interface language ----------------------------------------------
+
+    def show_settings(self) -> None:
+        SettingsDialog(self, controller=self)
+
+    def set_ui_locale(self, code: str) -> None:
+        """Switch the interface language and rebuild both screens.
+
+        Rebuilding beats keeping a StringVar per label: the document lives in
+        `self.data`, not in the widgets, so throwing the widgets away and
+        recreating them loses nothing and keeps every call site a plain string.
+        """
+        if code == self.settings.ui_locale:
+            return
+        self._save_now()
+        self.settings = self.settings_store.set_ui_locale(code)
+        self.t = Translator(code)
+        self.placeholders = placeholders(code)
+        self.fonts = Fonts(code)
+        self.title(self.t("app.name"))
+
+        section, document_id = self.current_section, self.current_document_id
+        showing_library = self.library_view.winfo_ismapped()
+        self.editor_view.destroy()
+        self.library_view.destroy()
+        self._build_screens()
+
+        self.status.set(self.t("status.saved" if document_id else "status.library"))
+        self.populate_form()
+        self.editor_view.set_title_editable(document_id is not None)
+        self.show_section(section)
+        if showing_library:
+            self.show_library()
+        else:
+            self.editor_view.tkraise()
 
     def _bind_shortcuts(self) -> None:
         self.bind_all("<Control-s>", lambda _event: self.save_file())
@@ -110,7 +159,7 @@ class CVBuilderApp(ctk.CTk):
         self.refresh_library()
         self.library_view.tkraise()
         self.editor_view.set_title_editable(False)
-        self.status.set("Local CV library")
+        self.status.set(self.t("status.library"))
 
     def show_preview(self) -> None:
         """Jump to the final step."""
@@ -127,24 +176,26 @@ class CVBuilderApp(ctk.CTk):
             records = self.service.list_documents()
         except Exception as error:
             records = []
-            messagebox.showerror("Could not open CV library", str(error), parent=self)
+            messagebox.showerror(
+                self.t("error.library_open"), str(error), parent=self
+            )
         self.library_view.refresh(records, self._document_preview)
 
     def _document_preview(self, document_id: str) -> tuple[str, int]:
         try:
             document = self.service.load(document_id)
         except Exception:
-            return "Document could not be previewed", 0
+            return self.t("library.preview_failed"), 0
         return (
-            document["profile"].get("name") or "No name added yet",
+            document["profile"].get("name") or self.t("library.no_name"),
             calculate_completion(document),
         )
 
     def create_cv(self) -> None:
         try:
-            record = self.service.create()
+            record = self.service.create(locale=self.settings.ui_locale)
         except Exception as error:
-            messagebox.showerror("Could not create CV", str(error), parent=self)
+            messagebox.showerror(self.t("error.create"), str(error), parent=self)
             return
         self.open_library_document(record.id)
 
@@ -154,7 +205,7 @@ class CVBuilderApp(ctk.CTk):
             record = self.service.get_record(document_id)
             self.data = self.service.load(document_id)
         except Exception as error:
-            messagebox.showerror("Could not open CV", str(error), parent=self)
+            messagebox.showerror(self.t("error.open"), str(error), parent=self)
             return
         self.current_document_id = record.id
         self.current_document_title = record.title
@@ -163,17 +214,17 @@ class CVBuilderApp(ctk.CTk):
         self.populate_form()
         self.show_section("profile")
         self.editor_view.tkraise()
-        self.status.set("Saved")
+        self.status.set(self.t("status.saved"))
 
     def rename_cv(self, document_id: str) -> None:
         try:
             self.service.get_record(document_id)
         except Exception as error:
-            messagebox.showerror("Could not rename CV", str(error), parent=self)
+            messagebox.showerror(self.t("error.rename"), str(error), parent=self)
             return
         dialog = ctk.CTkInputDialog(
-            text="Enter a new name for this CV:",
-            title="Rename CV",
+            text=self.t("dialog.rename.text"),
+            title=self.t("dialog.rename.title"),
         )
         value = dialog.get_input()
         if value is None:
@@ -186,7 +237,7 @@ class CVBuilderApp(ctk.CTk):
         try:
             updated = self.service.rename(document_id, value)
         except Exception as error:
-            messagebox.showerror("Could not rename CV", str(error), parent=self)
+            messagebox.showerror(self.t("error.rename"), str(error), parent=self)
             self.reset_title_field()
             return False
         if self.current_document_id == document_id:
@@ -218,7 +269,7 @@ class CVBuilderApp(ctk.CTk):
         try:
             self.service.duplicate(document_id)
         except Exception as error:
-            messagebox.showerror("Could not duplicate CV", str(error), parent=self)
+            messagebox.showerror(self.t("error.duplicate"), str(error), parent=self)
             return
         self.refresh_library()
 
@@ -229,16 +280,16 @@ class CVBuilderApp(ctk.CTk):
             self.refresh_library()
             return
         if not messagebox.askyesno(
-            "Delete CV",
-            f'Delete "{record.title}" from this device?',
-            detail="This cannot be undone. Export its JSON first if you need a backup.",
+            self.t("dialog.delete.title"),
+            self.t("dialog.delete.message", title=record.title),
+            detail=self.t("dialog.delete.detail"),
             parent=self,
         ):
             return
         try:
             self.service.delete(document_id)
         except Exception as error:
-            messagebox.showerror("Could not delete CV", str(error), parent=self)
+            messagebox.showerror(self.t("error.delete"), str(error), parent=self)
             return
         if self.current_document_id == document_id:
             self.current_document_id = None
@@ -251,58 +302,63 @@ class CVBuilderApp(ctk.CTk):
 
     def import_json(self) -> None:
         path = filedialog.askopenfilename(
-            title="Import CV JSON",
-            filetypes=[("CV Builder JSON", "*.json"), ("All files", "*.*")],
+            title=self.t("dialog.import.title"),
+            filetypes=[
+                (self.t("filetype.json"), "*.json"),
+                (self.t("filetype.all"), "*.*"),
+            ],
         )
         if not path:
             return
         try:
             record = self.service.import_json(path)
         except Exception as error:
-            messagebox.showerror("Could not import JSON", str(error), parent=self)
+            messagebox.showerror(self.t("error.import"), str(error), parent=self)
             return
         self.open_library_document(record.id)
 
     def export_example_json(self) -> bool:
         path = filedialog.asksaveasfilename(
-            title="Save example CV JSON",
+            title=self.t("dialog.example.title"),
             defaultextension=".json",
-            initialfile="cv-builder-example.json",
-            filetypes=[("CV Builder JSON", "*.json")],
+            initialfile=self.t("file.example_json"),
+            filetypes=[(self.t("filetype.json"), "*.json")],
         )
         if not path:
             return False
         try:
             self.service.export_example_json(path)
             messagebox.showinfo(
-                "Example JSON saved",
-                f"Edit this file and import it back into CV Builder:\n{path}",
+                self.t("dialog.example_saved.title"),
+                self.t("dialog.example_saved.message", path=path),
                 parent=self,
             )
             return True
         except Exception as error:
-            messagebox.showerror("Could not save example JSON", str(error), parent=self)
+            messagebox.showerror(self.t("error.example"), str(error), parent=self)
             return False
 
     def export_current_json(self) -> bool:
         if self.current_document_id is None:
             return False
-        suggested = self.current_document_title.strip().replace("/", "-") or "my-cv"
+        suggested = self.current_document_title.strip().replace("/", "-") or self.t(
+            "file.default_cv"
+        )
         path = filedialog.asksaveasfilename(
-            title="Export CV JSON",
+            title=self.t("dialog.export_json.title"),
             defaultextension=".json",
             initialfile=f"{suggested}.json",
-            filetypes=[("CV Builder JSON", "*.json")],
+            filetypes=[(self.t("filetype.json"), "*.json")],
         )
         if not path:
             return False
         try:
             self._save_now()
             self.service.export_json(path, self.collect_form())
-            self.status.set("JSON exported")
+            self.status.set(self.t("status.json_exported"))
             return True
         except Exception as error:
-            messagebox.showerror("Could not export JSON", str(error), parent=self)
+            messagebox.showerror(self.t("error.export_json"), str(error), parent=self)
             return False
 
     def generate(self) -> bool:
@@ -316,7 +372,7 @@ class CVBuilderApp(ctk.CTk):
         try:
             data = self.service.load(document_id)
         except Exception as error:
-            messagebox.showerror("Could not export PDF", str(error), parent=self)
+            messagebox.showerror(self.t("error.pdf"), str(error), parent=self)
             return False
         return self._export_pdf(data)
 
@@ -324,33 +380,33 @@ class CVBuilderApp(ctk.CTk):
         name = str(data.get("profile", {}).get("name") or "").strip()
         if not name:
             messagebox.showwarning(
-                "Missing name",
-                "Enter a name before generating the PDF.",
+                self.t("dialog.missing_name.title"),
+                self.t("dialog.missing_name.message"),
                 parent=self,
             )
             return False
         path = filedialog.asksaveasfilename(
-            title="Export PDF",
+            title=self.t("dialog.export_pdf.title"),
             defaultextension=".pdf",
-            initialfile=f"{name} - CV.pdf",
-            filetypes=[("PDF document", "*.pdf")],
+            initialfile=self.t("file.pdf_name", name=name),
+            filetypes=[(self.t("filetype.pdf"), "*.pdf")],
         )
         if not path:
             return False
         try:
-            self.status.set("Exporting PDF…")
+            self.status.set(self.t("status.exporting_pdf"))
             self.update_idletasks()
             self.service.export_pdf(path, data)
-            self.status.set(f"Exported · {Path(path).name}")
+            self.status.set(self.t("status.exported", name=Path(path).name))
             messagebox.showinfo(
-                "PDF created",
-                f"Your CV was saved to:\n{path}",
+                self.t("dialog.pdf_created.title"),
+                self.t("dialog.pdf_created.message", path=path),
                 parent=self,
             )
             return True
         except Exception as error:
-            self.status.set("PDF export failed")
-            messagebox.showerror("Could not generate PDF", str(error), parent=self)
+            self.status.set(self.t("status.pdf_failed"))
+            messagebox.showerror(self.t("error.pdf"), str(error), parent=self)
             return False
 
     # --- document state --------------------------------------------------
@@ -372,7 +428,7 @@ class CVBuilderApp(ctk.CTk):
     def _mark_dirty(self) -> None:
         if self.current_document_id is None:
             return
-        self.status.set("Saving…")
+        self.status.set(self.t("status.saving"))
         self._schedule_progress_update()
         self._schedule_autosave()
 
@@ -394,10 +450,10 @@ class CVBuilderApp(ctk.CTk):
             return False
         try:
             self.service.save(self.current_document_id, self.collect_form())
-            self.status.set("Saved")
+            self.status.set(self.t("status.saved"))
             return True
         except Exception:
-            self.status.set("Save failed")
+            self.status.set(self.t("status.save_failed"))
             return False
 
     def _close_application(self) -> None:
@@ -413,7 +469,7 @@ class CVBuilderApp(ctk.CTk):
         self._progress_job = None
         percent = calculate_completion(self.collect_form())
         self.editor_view.set_progress(percent)
-        self.progress_text.set(f"{percent}% complete")
+        self.progress_text.set(self.t("status.progress", percent=percent))
 
     # --- menu-style aliases ----------------------------------------------
 

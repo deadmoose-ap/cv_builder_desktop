@@ -22,10 +22,24 @@ def main() -> None:
         return
     if "--smoke-test" in sys.argv:
         from cv_builder.domain.model import new_document
-        from cv_builder.exporters.pdf import generate_pdf
+        from cv_builder.exporters.pdf import font_for_locale, generate_pdf, register_fonts
 
+        document = new_document()
+        if "--locale" in sys.argv:
+            # Proves the bundled CJK face actually shipped: registering falls
+            # back to the Latin font when the file is missing from the build,
+            # so a mismatch here fails the packaged check instead of silently
+            # exporting blank boxes on a machine without a system CJK font.
+            locale = sys.argv[sys.argv.index("--locale") + 1]
+            document["locale"] = locale
+            resolved = register_fonts(locale)
+            if resolved != font_for_locale(locale):
+                raise SystemExit(
+                    f"No font for locale {locale}: fell back to {resolved}"
+                )
+            print(f"font for {locale}: {resolved}")
         generate_pdf(
-            new_document(),
+            document,
             _argument_path("--smoke-test", "CVBuilder-smoke-test.pdf"),
         )
         return

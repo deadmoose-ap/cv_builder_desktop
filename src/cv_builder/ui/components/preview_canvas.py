@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import tkinter as tk
+from tkinter import font as tkfont
 from typing import Any
 
 from cv_builder.exporters import page_style
@@ -15,6 +16,16 @@ MIN_SCALE = 0.5
 MAX_SCALE = 1.0
 PAGE_MARGIN = 16.0
 PREVIEW_FONT = "Arial"
+# Tk cannot load a font file, so the preview draws CJK with whatever the system
+# installs. Glyph shapes may differ slightly from the embedded Noto in the
+# export; line breaks and page count do not, because `preview_layout` measures
+# with the exported font itself.
+CJK_PREVIEW_FONTS = {
+    "ja": ("Hiragino Sans", "Yu Gothic UI", "Arial Unicode MS"),
+    "ko": ("Apple SD Gothic Neo", "Malgun Gothic", "Arial Unicode MS"),
+    "zh-Hans": ("PingFang SC", "Microsoft YaHei UI", "Arial Unicode MS"),
+    "zh-Hant": ("PingFang TC", "Microsoft JhengHei UI", "Arial Unicode MS"),
+}
 
 
 class PreviewCanvas(tk.Canvas):
@@ -68,6 +79,15 @@ class PreviewCanvas(tk.Canvas):
         if dy:
             self.yview_scroll(-dy, "units")
 
+    def _font_family(self) -> str:
+        """Pick the first installed family that can draw this CV's script."""
+        locale = (self.data or {}).get("locale")
+        candidates = CJK_PREVIEW_FONTS.get(locale or "")
+        if not candidates:
+            return PREVIEW_FONT
+        installed = set(tkfont.families(self))
+        return next((name for name in candidates if name in installed), PREVIEW_FONT)
+
     def _page_scale(self) -> float:
         """Fit the page width, never magnifying past 1:1; height scrolls."""
         width = max(self.winfo_width() - 48, 120)
@@ -89,6 +109,7 @@ class PreviewCanvas(tk.Canvas):
         left = max((self.winfo_width() - page_width) / 2, 12)
 
         pages = build_pages(self.data)
+        family = self._font_family()
         for index, page in enumerate(pages):
             top = PAGE_MARGIN + index * (page_height + gap)
             self.create_rectangle(
@@ -114,7 +135,7 @@ class PreviewCanvas(tk.Canvas):
                     text=line.text,
                     anchor=line.anchor,
                     fill=line.color,
-                    font=(PREVIEW_FONT, -max(int(round(line.size * scale)), 5)),
+                    font=(family, -max(int(round(line.size * scale)), 5)),
                 )
         total = 2 * PAGE_MARGIN + len(pages) * (page_height + gap)
         self.configure(scrollregion=(0, 0, self.winfo_width(), total))

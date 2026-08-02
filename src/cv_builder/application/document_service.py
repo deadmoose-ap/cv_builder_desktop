@@ -31,8 +31,17 @@ class DocumentService:
     def load(self, document_id: str) -> dict[str, Any]:
         return self.library.load_document(document_id)
 
-    def create(self) -> CVRecord:
-        return self.library.create_document()
+    def create(self, locale: str | None = None) -> CVRecord:
+        """Create an empty CV, optionally pre-set to a language.
+
+        The domain default stays `en`; picking up the interface language is an
+        application-level convenience, so `domain.model` stays unaware of any
+        application setting.
+        """
+        document = new_document()
+        if locale:
+            document["locale"] = locale
+        return self.library.create_document(data=document)
 
     def duplicate(self, document_id: str) -> CVRecord:
         return self.library.duplicate_document(document_id)

@@ -6,82 +6,149 @@ from typing import Any
 
 import customtkinter as ctk
 
-from cv_builder.domain import themes
+from cv_builder.domain import locales, themes
 from cv_builder.ui.components.fields import section_header
 from cv_builder.ui.components.preview_canvas import PreviewCanvas
 from cv_builder.ui.screens.sections.base import Section
 from cv_builder.ui.theme import COLORS
 
 
-SWATCH_WIDTH = 62
-SWATCH_HEIGHT = 34
+SWATCH_SIZE = 38
+SWATCH_GAP = 8
+SWATCHES_PER_ROW = 4
+# Wide enough for the longest language label and four swatches on one row.
+OPTIONS_WIDTH = 214
 
 
 class PreviewSection(Section):
-    """Read-only render of the whole CV plus the colour picker."""
+    """Document options on the left, the rendered pages on the right."""
 
     def build(self) -> None:
         self.theme_buttons: dict[str, ctk.CTkButton] = {}
         self.selected_theme = themes.DEFAULT_THEME
+        self.selected_locale = locales.DEFAULT_LOCALE
         self.theme_label = tk.StringVar(value="")
+        self.locale_label = tk.StringVar(value=locales.locale_label(None))
         self.document: dict[str, Any] | None = None
 
-        self.grid_rowconfigure(2, weight=1)
+        # The options column keeps its width; the preview takes the rest, so
+        # the pages start at the top of the step instead of below the controls.
+        self.grid_rowconfigure(1, weight=1)
         section_header(
             self,
             self.fonts,
-            step="Section 5 of 5",
-            title="Preview",
-            subtitle="Check every page and choose the sidebar colour before exporting.",
-            action_text="Export PDF",
+            step=self.step(5),
+            title=self.t("preview.title"),
+            subtitle=self.t("preview.subtitle"),
+            action_text=self.t("editor.export_pdf"),
             action_command=self.controller.generate,
         )
-        self._build_theme_row()
-        self._build_stage()
 
-    def _build_theme_row(self) -> None:
-        row = ctk.CTkFrame(self, fg_color="transparent")
-        row.grid(row=1, column=0, sticky="ew", padx=36, pady=(0, 14))
-        row.grid_columnconfigure(1, weight=1)
+        body = ctk.CTkFrame(self, fg_color="transparent")
+        body.grid(row=1, column=0, sticky="nsew", padx=(36, 24), pady=(0, 24))
+        body.grid_columnconfigure(1, weight=1)
+        body.grid_rowconfigure(0, weight=1)
+        self._build_options(body)
+        self._build_stage(body)
 
-        caption = ctk.CTkFrame(row, fg_color="transparent")
-        caption.grid(row=0, column=0, columnspan=2, sticky="w", pady=(0, 8))
+    def _build_options(self, parent) -> None:
+        options = ctk.CTkFrame(parent, fg_color="transparent", width=OPTIONS_WIDTH)
+        options.grid(row=0, column=0, sticky="nsw", padx=(0, 24))
+        options.grid_propagate(False)
+        options.grid_columnconfigure(0, weight=1)
+        self._build_locale_block(options)
+        self._build_theme_block(options)
+
+    def _caption(self, parent, row: int, label: str, hint, pady) -> None:
         ctk.CTkLabel(
-            caption,
-            text="SIDEBAR COLOUR",
+            parent,
+            text=label,
             font=self.fonts.small_bold,
             text_color=COLORS["muted"],
             anchor="w",
-        ).pack(side="left")
+        ).grid(row=row, column=0, sticky="ew", pady=pady)
+        options = (
+            {"textvariable": hint} if isinstance(hint, tk.StringVar) else {"text": hint}
+        )
         ctk.CTkLabel(
-            caption,
-            textvariable=self.theme_label,
+            parent,
             font=self.fonts.small,
             text_color=COLORS["text"],
             anchor="w",
-        ).pack(side="left", padx=(10, 0))
+            justify="left",
+            wraplength=OPTIONS_WIDTH,
+            **options,
+        ).grid(row=row + 1, column=0, sticky="ew", pady=(2, 8))
 
-        swatches = ctk.CTkFrame(row, fg_color="transparent")
-        swatches.grid(row=1, column=0, columnspan=2, sticky="w")
-        for theme in themes.SIDEBAR_THEMES:
+    def _build_locale_block(self, parent) -> None:
+        """The CV's own language — independent of the interface language."""
+        self._caption(
+            parent,
+            0,
+            self.t("preview.cv_language"),
+            self.t("preview.cv_language_hint"),
+            (0, 0),
+        )
+        self.locale_menu = ctk.CTkOptionMenu(
+            parent,
+            values=[locale["label"] for locale in locales.LOCALES],
+            variable=self.locale_label,
+            command=self._on_locale_selected,
+            width=OPTIONS_WIDTH,
+            height=34,
+            corner_radius=8,
+            font=self.fonts.body,
+            dropdown_font=self.fonts.body,
+            fg_color=COLORS["surface"],
+            button_color=COLORS["border"],
+            button_hover_color=COLORS["muted"],
+            text_color=COLORS["text"],
+            dropdown_fg_color=COLORS["surface"],
+            dropdown_text_color=COLORS["text"],
+            dropdown_hover_color=COLORS["selection"],
+        )
+        self.locale_menu.grid(row=2, column=0, sticky="ew")
+
+    def _build_theme_block(self, parent) -> None:
+        self._caption(
+            parent,
+            3,
+            self.t("preview.sidebar_colour"),
+            self.theme_label,
+            (26, 0),
+        )
+        swatches = ctk.CTkFrame(parent, fg_color="transparent")
+        swatches.grid(row=5, column=0, sticky="w")
+        for index, theme in enumerate(themes.SIDEBAR_THEMES):
             swatch = ctk.CTkButton(
                 swatches,
                 text="",
                 command=lambda key=theme["key"]: self.select_theme(key),
-                width=SWATCH_WIDTH,
-                height=SWATCH_HEIGHT,
+                width=SWATCH_SIZE,
+                height=SWATCH_SIZE,
                 corner_radius=8,
                 fg_color=theme["color"],
                 hover_color=theme["color"],
                 border_width=2,
                 border_color=COLORS["background"],
             )
-            swatch.pack(side="left", padx=(0, 8))
+            swatch.grid(
+                row=index // SWATCHES_PER_ROW,
+                column=index % SWATCHES_PER_ROW,
+                padx=(0, SWATCH_GAP),
+                pady=(0, SWATCH_GAP),
+            )
             self.theme_buttons[theme["key"]] = swatch
 
-    def _build_stage(self) -> None:
-        stage = ctk.CTkFrame(self, corner_radius=0, fg_color=COLORS["background"])
-        stage.grid(row=2, column=0, sticky="nsew", padx=(36, 24), pady=(0, 24))
+    def _on_locale_selected(self, label: str) -> None:
+        for locale in locales.LOCALES:
+            if locale["label"] == label:
+                self.select_locale(locale["code"])
+                return
+
+    def _build_stage(self, parent) -> None:
+        stage = ctk.CTkFrame(parent, corner_radius=0, fg_color=COLORS["background"])
+        stage.grid(row=0, column=1, sticky="nsew")
         stage.grid_columnconfigure(0, weight=1)
         stage.grid_rowconfigure(0, weight=1)
         self.canvas = PreviewCanvas(stage)
@@ -105,9 +172,23 @@ class PreviewSection(Section):
             self.on_change()
         self._redraw()
 
+    def select_locale(self, code: str) -> None:
+        """Set the language the CV's own section headings are printed in."""
+        self._highlight_locale(code)
+        if self.document is not None and self.document.get("locale") != code:
+            self.document["locale"] = code
+            self.on_change()
+        self._redraw()
+
+    def _highlight_locale(self, code: str) -> None:
+        self.selected_locale = code
+        self.locale_label.set(locales.locale_label(code))
+
     def _highlight(self, key: str) -> None:
         self.selected_theme = key
-        self.theme_label.set(themes.get_theme(key)["label"])
+        # Colour names are interface copy, so they follow the interface
+        # language rather than the CV's own locale.
+        self.theme_label.set(self.t(f"theme.{key}"))
         for theme_key, swatch in self.theme_buttons.items():
             swatch.configure(
                 border_color=(
@@ -118,11 +199,13 @@ class PreviewSection(Section):
     def populate(self, data: dict[str, Any]) -> None:
         self.document = data
         self._highlight(themes.get_theme(data.get("theme"))["key"])
+        self._highlight_locale(locales.get_locale(data.get("locale"))["code"])
 
     def render_document(self, data: dict[str, Any]) -> None:
         """Draw the pages for the document as the form currently holds it."""
         self.document = data
         self._highlight(themes.get_theme(data.get("theme"))["key"])
+        self._highlight_locale(locales.get_locale(data.get("locale"))["code"])
         self.update_idletasks()
         self._redraw()
 
