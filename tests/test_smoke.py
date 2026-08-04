@@ -1,5 +1,6 @@
 """Smoke tests for the data layer and PDF renderer."""
 import re
+from copy import deepcopy
 from pathlib import Path
 
 from reportlab.pdfbase import pdfmetrics
@@ -17,6 +18,7 @@ from cv_builder.domain.text import split_lines, split_paragraphs
 from cv_builder.exporters import page_style, pdf
 from cv_builder.exporters.pdf import generate_pdf
 from cv_builder.exporters.preview_layout import build_pages
+from cv_builder.exporters.story import sidebar_story
 from cv_builder.infrastructure.library import CVLibrary
 from cv_builder.infrastructure.settings import AppSettings, SettingsStore
 from cv_builder.ui.i18n import Translator
@@ -147,6 +149,35 @@ def test_preview_matches_the_exported_page_count(tmp_path: Path):
     # The contact block is printed on the first page only.
     assert all(line.x >= page_style.MAIN_X for line in pages[1].lines[:-1])
     assert pages[1].lines[-1].text == "Page 2"
+
+
+def test_preview_and_export_agree_at_every_length(tmp_path: Path):
+    """Guards the spacing rules, not just one lucky document length.
+
+    Page breaks are the one place the two renderers can silently drift, and a
+    single fixture only ever exercises one position in the column.
+    """
+    base = normalize_document(example_document())
+    for count in range(1, 8):
+        data = deepcopy(base)
+        data["experience"] = data["experience"] * count
+        target = tmp_path / f"length-{count}.pdf"
+        generate_pdf(data, target)
+        exported = len(re.findall(rb"/Type\s*/Page[^s]", target.read_bytes()))
+        assert len(build_pages(data)) == exported, f"{count} companies"
+
+
+def test_the_sidebar_lists_languages_after_skills():
+    data = normalize_document(example_document())
+    data["locale"] = "ru"
+    texts = [item.text for item in sidebar_story(data) if hasattr(item, "text")]
+    assert texts.index("КЛЮЧЕВЫЕ НАВЫКИ") < texts.index("ЯЗЫКИ")
+    assert "English - C1\nSpanish - B2" in texts
+
+    # An empty list prints no heading rather than an empty block.
+    data["profile"]["languages"] = []
+    empty = [item.text for item in sidebar_story(data) if hasattr(item, "text")]
+    assert "ЯЗЫКИ" not in empty
 
 
 def test_local_library_create_autosave_rename_import_and_delete(tmp_path: Path):

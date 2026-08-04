@@ -317,8 +317,12 @@ class CVBuilderApp(ctk.CTk):
             return
         self.open_library_document(record.id)
 
-    def export_example_json(self) -> bool:
+    def export_example_json(self, parent=None) -> bool:
+        # `parent` is the window that asked, so the file chooser and the
+        # confirmation stack on top of it rather than behind it.
+        owner = parent if parent is not None else self
         path = filedialog.asksaveasfilename(
+            parent=owner,
             title=self.t("dialog.example.title"),
             defaultextension=".json",
             initialfile=self.t("file.example_json"),
@@ -331,11 +335,11 @@ class CVBuilderApp(ctk.CTk):
             messagebox.showinfo(
                 self.t("dialog.example_saved.title"),
                 self.t("dialog.example_saved.message", path=path),
-                parent=self,
+                parent=owner,
             )
             return True
         except Exception as error:
-            messagebox.showerror(self.t("error.example"), str(error), parent=self)
+            messagebox.showerror(self.t("error.example"), str(error), parent=owner)
             return False
 
     def export_current_json(self) -> bool:

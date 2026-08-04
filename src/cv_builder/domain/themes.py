@@ -7,16 +7,20 @@ measured contrast against the plate.
 from __future__ import annotations
 
 
-# Text colours for a light (white) background.
+# Text colours for a light (white) background. `meta` is for dates, durations
+# and locations: readable at small sizes (~5:1 on white) where `muted` — kept
+# for the large headline location line — would be too faint to print.
 TEXT_DARK = {
     "heading": "#0b0b0b",
     "body": "#161616",
+    "meta": "#6b6b6b",
     "muted": "#a9a9a9",
 }
 # Text colours for a dark plate.
 TEXT_LIGHT = {
     "heading": "#e8ebed",
     "body": "#ffffff",
+    "meta": "#d5dbdf",
     "muted": "#c6ced3",
 }
 

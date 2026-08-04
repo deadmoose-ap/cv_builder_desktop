@@ -183,7 +183,7 @@ Each document should have:
 - `example_document()` — a separate editable sample;
 - `normalize_document()` — fills in optional keys and drops unknown ones;
 - `load_document()` and `save_document()` — UTF-8 and atomic write;
-- `schema_version` — recommended to add in future applications.
+- `schema_version` — an integer bumped whenever a section changes shape.
 
 Placeholders must be UI state, not a value in the domain model.
 
@@ -192,6 +192,14 @@ sidebar colour as a top-level `theme` key) live in the document JSON, not in
 the library index: an exported file must render the same way after import.
 Such keys stay optional — `normalize_document()` falls back to the default for
 older documents and rejects unknown values, so no migration is required.
+
+A section that changes *shape*, however, does need one. CV Builder's experience
+section went from one entry per role to one entry per company holding a list of
+positions (`schema_version` 1 → 2). The migration lives inside
+`normalize_document()` rather than beside `load_document()`, so importing a JSON
+file and opening a stored one take the same path. Free-text data that the new
+shape cannot represent exactly is kept verbatim in a `*_legacy` field and
+rendered as written, instead of being guessed at or dropped.
 
 ### Migrations
 

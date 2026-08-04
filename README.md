@@ -5,7 +5,13 @@ CV Builder is a local desktop application for creating a structured CV and expor
 ## User features
 
 - Profile, summary, experience, and education forms
-- Add, edit, delete, and reorder experience entries
+- Experience grouped by employer: one company holds every position you held
+  there, each with its own dates, location and achievements
+- Month/year pickers with an "I work here now" checkbox; durations and the
+  combined tenure at a company are computed, and dates print in the CV's own
+  language
+- Core skills and spoken languages, both printed in the sidebar
+- Add, edit, delete, and reorder companies and positions
 - Calm Workspace navigation with CV completion progress
 - Rounded CustomTkinter cards, fields, and action hierarchy
 - Inline experience editor that keeps the user in the main workspace

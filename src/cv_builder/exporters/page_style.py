@@ -38,10 +38,19 @@ STYLES: dict[str, dict[str, Any]] = {
         "space_after": 10,
         "color": "heading",
     },
-    "company": {"size": 12, "leading": 15, "space_after": 3, "color": "body"},
-    "duration": {"size": 10.5, "leading": 13.5, "space_after": 7, "color": "body"},
-    "role": {"size": 12, "leading": 15, "space_after": 1, "color": "body"},
-    "dates": {"size": 10.5, "leading": 13, "space_after": 7, "color": "body"},
+    # The experience header is a four-step ladder: the company is the anchor
+    # (bold, largest), the role sits one step below it, and the dates and the
+    # location trail off in grey at decreasing size.
+    "company": {
+        "size": 13,
+        "leading": 16,
+        "space_after": 2,
+        "color": "heading",
+        "bold": True,
+    },
+    "role": {"size": 11.5, "leading": 14.5, "space_after": 1, "color": "body"},
+    "dates": {"size": 10, "leading": 13, "space_after": 2, "color": "meta"},
+    "place": {"size": 9.5, "leading": 12.5, "space_after": 7, "color": "meta"},
     "body": {"size": 10.5, "leading": 15.1, "space_after": 9, "color": "body"},
     "bullet": {
         "size": 10.5,
@@ -67,6 +76,7 @@ def style(name: str) -> dict[str, Any]:
         "color": "body",
         "left_indent": 0.0,
         "first_line_indent": 0.0,
+        "bold": False,
     }
     defaults.update(STYLES[name])
     return defaults

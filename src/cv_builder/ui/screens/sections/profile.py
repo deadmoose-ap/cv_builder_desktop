@@ -86,51 +86,54 @@ class ProfileSection(Section):
             padx=22,
         )
 
-        skills_group = ctk.CTkFrame(form, fg_color="transparent")
-        skills_group.grid(
-            row=4,
-            column=0,
-            columnspan=2,
-            sticky="ew",
-            padx=22,
-            pady=(0, 22),
+        # Two short one-per-line lists sharing a row: side by side they cost no
+        # more height than skills alone used to.
+        self.skills_text = self._list_group(
+            form, "skills", column=0, padx=(22, 7)
         )
-        skills_group.grid_columnconfigure(0, weight=1)
+        self.languages_text = self._list_group(
+            form, "languages", column=1, padx=(7, 22)
+        )
+
+    def _list_group(self, form, key: str, *, column: int, padx) -> Any:
+        """A labelled one-item-per-line textbox, as used for skills."""
+        group = ctk.CTkFrame(form, fg_color="transparent")
+        group.grid(row=4, column=column, sticky="ew", padx=padx, pady=(0, 22))
+        group.grid_columnconfigure(0, weight=1)
         ctk.CTkLabel(
-            skills_group,
-            text=self.t("profile.skills"),
+            group,
+            text=self.t(f"profile.{key}"),
             font=self.fonts.label,
             text_color=COLORS["text"],
             anchor="w",
         ).grid(row=0, column=0, sticky="w")
         ctk.CTkLabel(
-            skills_group,
-            text=self.t("profile.skills_hint"),
+            group,
+            text=self.t(f"profile.{key}_hint"),
             font=self.fonts.small,
             text_color=COLORS["muted"],
             anchor="e",
         ).grid(row=0, column=1, sticky="e")
-        self.skills_text = textbox(
-            skills_group,
+        widget = textbox(
+            group,
             self.fonts,
             height=118,
-            placeholder=placeholders["skills"],
+            placeholder=self.placeholders[key],
         )
-        self.skills_text.grid(
-            row=1, column=0, columnspan=2, sticky="ew", pady=(6, 0)
-        )
-        self.skills_text.bind(
-            "<KeyRelease>", lambda _event: self.on_change(), add="+"
-        )
+        widget.grid(row=1, column=0, columnspan=2, sticky="ew", pady=(6, 0))
+        widget.bind("<KeyRelease>", lambda _event: self.on_change(), add="+")
+        return widget
 
     def collect(self, data: dict[str, Any]) -> None:
         profile = data["profile"]
         for key, variable in self.vars.items():
             profile[key] = variable.get().strip()
         profile["skills"] = split_lines(self.skills_text.get("1.0", "end"))
+        profile["languages"] = split_lines(self.languages_text.get("1.0", "end"))
 
     def populate(self, data: dict[str, Any]) -> None:
         profile = data["profile"]
         for key, variable in self.vars.items():
             variable.set(profile.get(key, ""))
         self.skills_text.set_value("\n".join(profile.get("skills", [])))
+        self.languages_text.set_value("\n".join(profile.get("languages", [])))

@@ -122,6 +122,62 @@ def card(parent, **kwargs) -> ctk.CTkFrame:
     )
 
 
+def option_menu(
+    parent,
+    fonts: Fonts,
+    *,
+    values: list[str],
+    variable: tk.StringVar,
+    command=None,
+    width: int = 250,
+    height: int = 36,
+    fg_color: str | None = None,
+) -> ctk.CTkOptionMenu:
+    """The one dropdown look this app uses, everywhere it uses one.
+
+    `fg_color` defaults to the surface white that reads against the editor
+    background; pass `surface_alt` when the menu sits on a white card, where
+    white on white would leave only the arrow visible.
+    """
+    return ctk.CTkOptionMenu(
+        parent,
+        values=values,
+        variable=variable,
+        command=command,
+        width=width,
+        height=height,
+        corner_radius=8,
+        font=fonts.body,
+        dropdown_font=fonts.body,
+        fg_color=fg_color or COLORS["surface"],
+        button_color=COLORS["border"],
+        button_hover_color=COLORS["muted"],
+        text_color=COLORS["text"],
+        dropdown_fg_color=COLORS["surface"],
+        dropdown_text_color=COLORS["text"],
+        dropdown_hover_color=COLORS["selection"],
+    )
+
+
+def checkbox(parent, fonts: Fonts, *, text: str, variable, command=None) -> ctk.CTkCheckBox:
+    """A checkbox in the Calm Workspace palette."""
+    return ctk.CTkCheckBox(
+        parent,
+        text=text,
+        variable=variable,
+        command=command,
+        font=fonts.body,
+        text_color=COLORS["text"],
+        fg_color=COLORS["accent"],
+        hover_color=COLORS["accent_hover"],
+        border_color=COLORS["border"],
+        border_width=1,
+        corner_radius=5,
+        checkbox_width=20,
+        checkbox_height=20,
+    )
+
+
 def textbox(parent, fonts: Fonts, *, height: int, placeholder: str = "") -> PlaceholderTextbox:
     return PlaceholderTextbox(
         parent,

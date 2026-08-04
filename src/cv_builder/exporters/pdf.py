@@ -53,6 +53,7 @@ CJK_FONTS: dict[str, dict[str, Any]] = {
     },
 }
 LATIN_FONT = "CVRegular"
+LATIN_BOLD_FONT = "CVBold"
 
 
 def _resource_path(relative: str) -> Path:
@@ -100,6 +101,18 @@ def font_for_locale(locale: str | None) -> str:
     return f"CVRegular-{locale}" if locale in CJK_FONTS else LATIN_FONT
 
 
+def bold_font_for_locale(locale: str | None, regular: str) -> str:
+    """Bold face for a locale, falling back to `regular` when there is none.
+
+    Only Arial/DejaVu ship a bold companion here; the bundled Noto CJK faces
+    are regular-weight only, so a Japanese CV keeps the same weight rather
+    than failing or synthesising a smear.
+    """
+    if locale in CJK_FONTS or regular != LATIN_FONT:
+        return regular
+    return LATIN_BOLD_FONT
+
+
 def register_fonts(locale: str | None = None) -> str:
     """Register the fonts this locale needs; safe to call repeatedly.
 
@@ -109,7 +122,7 @@ def register_fonts(locale: str | None = None) -> str:
     registered = pdfmetrics.getRegisteredFontNames()
     if LATIN_FONT not in registered:
         pdfmetrics.registerFont(TTFont(LATIN_FONT, str(_find_font(False))))
-        pdfmetrics.registerFont(TTFont("CVBold", str(_find_font(True))))
+        pdfmetrics.registerFont(TTFont(LATIN_BOLD_FONT, str(_find_font(True))))
     name = font_for_locale(locale)
     if name == LATIN_FONT or name in registered:
         return name
@@ -135,13 +148,15 @@ def _safe(value: Any) -> str:
     return escape(str(value or "")).replace("\n", "<br/>")
 
 
-def _styles(sidebar_color: str, font_name: str, cjk: bool) -> dict[str, ParagraphStyle]:
+def _styles(
+    sidebar_color: str, font_name: str, bold_name: str, cjk: bool
+) -> dict[str, ParagraphStyle]:
     styles = {}
     for name in page_style.STYLES:
         definition = page_style.style(name)
         styles[name] = ParagraphStyle(
             name,
-            fontName=font_name,
+            fontName=bold_name if definition["bold"] else font_name,
             # Japanese, Korean and Chinese are written without spaces, so the
             # default whitespace-based wrapping would run a whole paragraph
             # off the page as one unbreakable "word".
@@ -161,9 +176,10 @@ def generate_pdf(data: dict[str, Any], output_path: str | Path) -> None:
     """Generate a polished CV PDF from a validated data dictionary."""
     locale = data.get("locale")
     font_name = register_fonts(locale)
+    bold_name = bold_font_for_locale(locale, font_name)
     theme = themes.get_theme(data.get("theme"))
     sidebar_color = theme["color"]
-    styles = _styles(sidebar_color, font_name, is_cjk(locale))
+    styles = _styles(sidebar_color, font_name, bold_name, is_cjk(locale))
 
     def flowables(items) -> list:
         result = []

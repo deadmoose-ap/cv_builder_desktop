@@ -129,13 +129,14 @@ class PreviewCanvas(tk.Canvas):
                 outline=page.sidebar_color,
             )
             for line in page.lines:
+                size = -max(int(round(line.size * scale)), 5)
                 self.create_text(
                     left + line.x * scale,
                     top + line.y * scale,
                     text=line.text,
                     anchor=line.anchor,
                     fill=line.color,
-                    font=(family, -max(int(round(line.size * scale)), 5)),
+                    font=(family, size, "bold") if line.bold else (family, size),
                 )
         total = 2 * PAGE_MARGIN + len(pages) * (page_height + gap)
         self.configure(scrollregion=(0, 0, self.winfo_width(), total))

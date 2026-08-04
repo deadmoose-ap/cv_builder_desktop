@@ -16,7 +16,7 @@ from cv_builder.domain.cv_labels import page_label
 from cv_builder.domain.locales import is_cjk
 from cv_builder.exporters import page_style
 from cv_builder.exporters.story import Gap, Group, Item, Para, main_story, sidebar_story
-from cv_builder.exporters.pdf import register_fonts
+from cv_builder.exporters.pdf import bold_font_for_locale, register_fonts
 
 
 FONT_NAME = "CVRegular"
@@ -32,6 +32,7 @@ class Line:
     size: float
     color: str
     anchor: str = "nw"
+    bold: bool = False
 
 
 @dataclass
@@ -92,10 +93,12 @@ class _Flow:
         x: float,
         width: float,
         font: str = FONT_NAME,
+        bold_font: str | None = None,
         cjk: bool = False,
     ):
         self.sidebar_color = sidebar_color
         self.font = font
+        self.bold_font = bold_font or font
         self.cjk = cjk
         self.top = top
         self.bottom = bottom
@@ -103,6 +106,12 @@ class _Flow:
         self.width = width
         self.pages: list[Page] = [Page(sidebar_color)]
         self.y = top
+        # ReportLab drops a flowable's space_before at the top of a frame and
+        # otherwise overlaps it with the previous flowable's space_after
+        # (Frame._add). Mirroring that here is what keeps the preview's page
+        # breaks identical to the exported ones.
+        self.at_top = True
+        self.previous_space_after = 0.0
 
     @property
     def page(self) -> Page:
@@ -111,11 +120,23 @@ class _Flow:
     def _new_page(self) -> None:
         self.pages.append(Page(self.sidebar_color))
         self.y = self.top
+        self.at_top = True
+        self.previous_space_after = 0.0
+
+    @staticmethod
+    def _leading_space(definition: dict, previous_after: float, at_top: bool) -> float:
+        if at_top:
+            return 0.0
+        return max(definition["space_before"] - previous_after, 0.0)
+
+    def _font_for(self, definition: dict) -> str:
+        return self.bold_font if definition["bold"] else self.font
 
     def _place(self, item: Para, *, allow_split: bool) -> None:
         definition = page_style.style(item.style)
         size = definition["size"]
         leading = definition["leading"]
+        bold = definition["bold"]
         color = page_style.resolve_color(item.style, self.sidebar_color)
         lines = _wrap(
             item.text,
@@ -123,48 +144,63 @@ class _Flow:
             self.width,
             definition["left_indent"],
             definition["first_line_indent"],
-            self.font,
+            self._font_for(definition),
             self.cjk,
         )
-        self.y += definition["space_before"]
+        self.y += self._leading_space(
+            definition, self.previous_space_after, self.at_top
+        )
         index = 0
         while index < len(lines):
             if self.y + leading > self.bottom and self.y > self.top:
                 if not allow_split:
                     return
                 self._new_page()
+            self.at_top = False
             offset, text = lines[index]
             if text:
                 self.page.lines.append(
-                    Line(self.x + offset, self.y, text, size, color)
+                    Line(self.x + offset, self.y, text, size, color, bold=bold)
                 )
             self.y += leading
             index += 1
         self.y += definition["space_after"]
+        self.at_top = False
+        self.previous_space_after = definition["space_after"]
 
-    def _height(self, item: Para) -> float:
-        definition = page_style.style(item.style)
-        lines = _wrap(
-            item.text,
-            definition["size"],
-            self.width,
-            definition["left_indent"],
-            definition["first_line_indent"],
-            self.font,
-            self.cjk,
-        )
-        return (
-            definition["space_before"]
-            + len(lines) * definition["leading"]
-            + definition["space_after"]
-        )
+    def _group_height(self, group: Group) -> float:
+        """Height a keep-together block needs where the column stands now."""
+        total = 0.0
+        previous_after = self.previous_space_after
+        at_top = self.at_top
+        for child in group.items:
+            definition = page_style.style(child.style)
+            lines = _wrap(
+                child.text,
+                definition["size"],
+                self.width,
+                definition["left_indent"],
+                definition["first_line_indent"],
+                self._font_for(definition),
+                self.cjk,
+            )
+            total += (
+                self._leading_space(definition, previous_after, at_top)
+                + len(lines) * definition["leading"]
+                + definition["space_after"]
+            )
+            previous_after = definition["space_after"]
+            at_top = False
+        return total
 
     def add(self, story: list[Item], *, paginate: bool = True) -> None:
         for item in story:
             if isinstance(item, Gap):
                 self.y += item.height
+                self.at_top = False
+                self.previous_space_after = 0.0
             elif isinstance(item, Group):
-                height = sum(self._height(child) for child in item.items)
+                height = self._group_height(item)
                 if paginate and self.y + height > self.bottom and self.y > self.top:
                     self._new_page()
                 for child in item.items:
@@ -179,6 +215,7 @@ def build_pages(data: dict[str, Any]) -> list[Page]:
     # Measuring with the very font the export embeds is what keeps the preview
     # from drifting: a CJK CV wraps on screen exactly where the PDF wraps it.
     font = register_fonts(locale)
+    bold_font = bold_font_for_locale(locale, font)
     cjk = is_cjk(locale)
     theme = themes.get_theme(data.get("theme"))
     sidebar_color = theme["color"]
@@ -190,6 +227,7 @@ def build_pages(data: dict[str, Any]) -> list[Page]:
         page_style.MAIN_X,
         page_style.MAIN_WIDTH,
         font,
+        bold_font,
         cjk,
     )
     flow.add(main_story(data))
@@ -202,6 +240,7 @@ def build_pages(data: dict[str, Any]) -> list[Page]:
         page_style.SIDEBAR_X,
         page_style.SIDEBAR_TEXT_WIDTH,
         font,
+        bold_font,
         cjk,
     )
     sidebar.add(sidebar_story(data), paginate=False)

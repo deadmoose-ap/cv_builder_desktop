@@ -10,6 +10,7 @@ import tkinter as tk
 import customtkinter as ctk
 
 from cv_builder.domain import locales
+from cv_builder.ui.components.fields import option_menu
 from cv_builder.ui.theme import COLORS, button
 
 
@@ -39,6 +40,26 @@ class SettingsDialog(ctk.CTkToplevel):
             self.grab_set()
         except tk.TclError:
             pass  # The window may already be gone in a headless smoke run.
+
+    def _without_grab(self, action):
+        """Run a nested dialog outside this window's modal grab.
+
+        A `transient` child stays above its master on macOS, so a file chooser
+        or a message box owned by the application window would open *behind*
+        Settings and be half-hidden. Releasing the grab for the call — and
+        raising this window again afterwards — keeps the stack honest.
+        """
+        try:
+            self.grab_release()
+        except tk.TclError:
+            pass
+        try:
+            return action()
+        finally:
+            if self.winfo_exists():
+                self.lift()
+                self.focus_force()
+                self._grab()
 
     def _build(self) -> None:
         body = ctk.CTkFrame(self, fg_color="transparent")
@@ -80,25 +101,19 @@ class SettingsDialog(ctk.CTkToplevel):
 
     def _build_language(self, body) -> None:
         self._heading(body, 0, "settings.interface_language", (0, 0))
-        ctk.CTkOptionMenu(
+        option_menu(
             body,
+            self.controller.fonts,
             values=[locale["label"] for locale in locales.LOCALES],
             variable=self.language,
             command=self._on_selected,
-            width=250,
-            height=36,
-            corner_radius=8,
-            font=self.controller.fonts.body,
-            dropdown_font=self.controller.fonts.body,
-            fg_color=COLORS["surface"],
-            button_color=COLORS["border"],
-            button_hover_color=COLORS["muted"],
-            text_color=COLORS["text"],
-            dropdown_fg_color=COLORS["surface"],
-            dropdown_text_color=COLORS["text"],
-            dropdown_hover_color=COLORS["selection"],
         ).grid(row=1, column=0, sticky="w", pady=(8, 10))
         self._hint(body, 2, "settings.interface_hint", (0, 0))
+
+    def _export_example_json(self) -> bool:
+        return self._without_grab(
+            lambda: self.controller.export_example_json(parent=self)
+        )
 
     def _build_example_json(self, body) -> None:
         """Export the example plus a prompt that turns it into a real CV.
@@ -116,7 +131,7 @@ class SettingsDialog(ctk.CTkToplevel):
             body,
             self.controller.fonts,
             text=self.t("settings.example_json_save"),
-            command=self.controller.export_example_json,
+            command=self._export_example_json,
             variant="secondary",
             width=250,
         ).grid(row=6, column=0, sticky="w")

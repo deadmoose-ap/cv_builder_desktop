@@ -143,7 +143,13 @@ def main() -> None:
             app.show_library()
         elif state == "experience-editor":
             app.show_section("experience")
-            app.editor_view.experience.add_entry()
+            # The position form is the interesting one: dates, checkbox, lists.
+            experience = app.editor_view.experience
+            if not experience.entries:
+                experience.company_var.set("Company")
+                experience._save_company(None)
+            else:
+                experience.add_position(0)
         elif state == "preview":
             # A filled document shows the real preview layout, not empty pages.
             sample = library.create_document("Preview Sample CV", example_document())

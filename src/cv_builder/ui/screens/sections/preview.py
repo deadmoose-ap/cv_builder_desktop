@@ -7,7 +7,7 @@ from typing import Any
 import customtkinter as ctk
 
 from cv_builder.domain import locales, themes
-from cv_builder.ui.components.fields import section_header
+from cv_builder.ui.components.fields import option_menu, section_header
 from cv_builder.ui.components.preview_canvas import PreviewCanvas
 from cv_builder.ui.screens.sections.base import Section
 from cv_builder.ui.theme import COLORS
@@ -89,23 +89,14 @@ class PreviewSection(Section):
             self.t("preview.cv_language_hint"),
             (0, 0),
         )
-        self.locale_menu = ctk.CTkOptionMenu(
+        self.locale_menu = option_menu(
             parent,
+            self.fonts,
             values=[locale["label"] for locale in locales.LOCALES],
             variable=self.locale_label,
             command=self._on_locale_selected,
             width=OPTIONS_WIDTH,
             height=34,
-            corner_radius=8,
-            font=self.fonts.body,
-            dropdown_font=self.fonts.body,
-            fg_color=COLORS["surface"],
-            button_color=COLORS["border"],
-            button_hover_color=COLORS["muted"],
-            text_color=COLORS["text"],
-            dropdown_fg_color=COLORS["surface"],
-            dropdown_text_color=COLORS["text"],
-            dropdown_hover_color=COLORS["selection"],
         )
         self.locale_menu.grid(row=2, column=0, sticky="ew")
 

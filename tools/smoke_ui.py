@@ -53,15 +53,32 @@ def main() -> None:
         experience.edit_entry(0)
         app.update_idletasks()
         assert experience.editor_open
+        # Only the form being edited may be on screen: the two share a grid
+        # cell, and the short company form does not cover the tall position one.
+        assert experience.company_form.winfo_ismapped()
+        assert not experience.position_form.winfo_ismapped()
         experience.cancel_edit()
         app.update_idletasks()
         assert not experience.editor_open
-        experience.edit_entry(0)
-        experience.editor_vars["role"].set("UI SMOKE ROLE")
+        experience.edit_position(0, 0)
+        app.update_idletasks()
+        assert experience.position_form.winfo_ismapped()
+        assert not experience.company_form.winfo_ismapped()
+        experience.role_var.set("UI SMOKE ROLE")
         experience.save_entry()
         app.update_idletasks()
-        assert app.data["experience"][0]["role"] == "UI SMOKE ROLE"
+        positions = app.data["experience"][0]["positions"]
+        assert positions[0]["role"] == "UI SMOKE ROLE"
+        assert positions[0]["start"], "the date picker kept the loaded start month"
         assert not experience.editor_open
+
+        # A second position under the same company is what the schema is for.
+        experience.add_position(0)
+        experience.role_var.set("UI SMOKE EARLIER ROLE")
+        experience.dates_field.set_value("2019-03", "2020-08", False)
+        experience.save_entry()
+        app.update_idletasks()
+        assert len(app.data["experience"][0]["positions"]) == 3
 
         app.document_title_var.set("Renamed CV")
         app.commit_title_edit()
@@ -118,7 +135,7 @@ def main() -> None:
             for _, section_width, section_height in states
         )
         stored = library.load_document(record.id)
-        assert stored["experience"][0]["role"] == "UI SMOKE ROLE"
+        assert stored["experience"][0]["positions"][0]["role"] == "UI SMOKE ROLE"
         assert stored["theme"] == "mint"
         assert stored["locale"] == "ja"
         print(f"window={width}x{height}")

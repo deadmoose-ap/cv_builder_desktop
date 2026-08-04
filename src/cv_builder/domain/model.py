@@ -6,11 +6,17 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
+from cv_builder.domain.dates import parse_legacy_range
 from cv_builder.domain.locales import DEFAULT_LOCALE, get_locale
 from cv_builder.domain.themes import DEFAULT_THEME, get_theme
 
 
+# 1 -> one experience entry per role, dates as free text.
+# 2 -> one entry per company holding a list of positions with real month dates.
+SCHEMA_VERSION = 2
+
 EXAMPLE_DATA: dict[str, Any] = {
+    "schema_version": SCHEMA_VERSION,
     "profile": {
         "name": "YOUR NAME",
         "headline": "YOUR JOB TITLE | YOUR SPECIALIZATION | YOUR KEY VALUE",
@@ -18,6 +24,7 @@ EXAMPLE_DATA: dict[str, Any] = {
         "email": "your.email@example.com",
         "linkedin": "linkedin.com/in/your-profile",
         "skills": ["SKILL ONE", "SKILL TWO", "SKILL THREE"],
+        "languages": ["English - C1", "Spanish - B2"],
         "summary": [
             "Write a short introduction about your professional background and main expertise.",
             "Describe the teams, projects, or products you have worked with.",
@@ -27,13 +34,31 @@ EXAMPLE_DATA: dict[str, Any] = {
     "experience": [
         {
             "company": "CURRENT OR MOST RECENT COMPANY",
-            "duration": "X YEARS X MONTHS",
-            "role": "YOUR JOB TITLE",
-            "dates": "MONTH YEAR - PRESENT",
-            "place": "CITY, COUNTRY",
-            "intro": "Add a one-sentence role or project description.",
-            "work": ["Describe a key responsibility.", "Describe another contribution."],
-            "results": ["Describe a measurable result or business impact."],
+            "positions": [
+                {
+                    "role": "YOUR CURRENT JOB TITLE",
+                    "start": "2024-06",
+                    "end": "",
+                    "current": True,
+                    "place": "CITY, COUNTRY",
+                    "intro": "Add a one-sentence role or project description.",
+                    "work": [
+                        "Describe a key responsibility.",
+                        "Describe another contribution.",
+                    ],
+                    "results": ["Describe a measurable result or business impact."],
+                },
+                {
+                    "role": "THE JOB TITLE YOU HELD BEFORE IT, AT THE SAME COMPANY",
+                    "start": "2022-09",
+                    "end": "2024-05",
+                    "current": False,
+                    "place": "CITY, COUNTRY",
+                    "intro": "Add a one-sentence role or project description.",
+                    "work": ["Describe a key responsibility."],
+                    "results": ["Describe a measurable result or business impact."],
+                },
+            ],
         }
     ],
     "education": {
@@ -45,6 +70,7 @@ EXAMPLE_DATA: dict[str, Any] = {
 }
 
 DEFAULT_DATA: dict[str, Any] = {
+    "schema_version": SCHEMA_VERSION,
     "profile": {
         "name": "",
         "headline": "",
@@ -52,6 +78,7 @@ DEFAULT_DATA: dict[str, Any] = {
         "email": "",
         "linkedin": "",
         "skills": [],
+        "languages": [],
         "summary": [],
     },
     "experience": [],
@@ -70,16 +97,28 @@ def new_document() -> dict[str, Any]:
 
 
 def empty_experience() -> dict[str, Any]:
-    """Return a blank experience entry with every key present."""
+    """Return a blank company entry with every key present."""
+    return {"company": "", "positions": []}
+
+
+def empty_position() -> dict[str, Any]:
+    """Return a blank position with every key present.
+
+    `dates_legacy` and `duration_legacy` only ever hold text carried over from
+    a schema-1 document whose free-text dates could not be read; they are
+    printed verbatim until the user picks real dates, and stay empty otherwise.
+    """
     return {
-        "company": "",
-        "duration": "",
         "role": "",
-        "dates": "",
+        "start": "",
+        "end": "",
+        "current": False,
         "place": "",
         "intro": "",
         "work": [],
         "results": [],
+        "dates_legacy": "",
+        "duration_legacy": "",
     }
 
 
@@ -88,8 +127,56 @@ def example_document() -> dict[str, Any]:
     return deepcopy(EXAMPLE_DATA)
 
 
+def _normalize_position(raw: dict[str, Any]) -> dict[str, Any]:
+    position = empty_position()
+    position.update({key: value for key, value in raw.items() if key in position})
+    position["current"] = bool(position.get("current"))
+    position["work"] = list(position.get("work") or [])
+    position["results"] = list(position.get("results") or [])
+    for key in ("role", "start", "end", "place", "intro", "dates_legacy", "duration_legacy"):
+        position[key] = str(position.get(key) or "")
+    if position["current"]:
+        position["end"] = ""
+    return position
+
+
+def _migrate_entry(raw: dict[str, Any]) -> dict[str, Any]:
+    """Turn a schema-1 entry (one role, free-text dates) into a company."""
+    position = _normalize_position(raw)
+    parsed = parse_legacy_range(raw.get("dates"))
+    if parsed is not None:
+        position["start"], position["end"], position["current"] = parsed
+    else:
+        # Unreadable dates are kept as written rather than guessed at, so no
+        # document ever loses information by being opened in a newer build.
+        position["dates_legacy"] = str(raw.get("dates") or "")
+        position["duration_legacy"] = str(raw.get("duration") or "")
+    described = any(
+        position[key]
+        for key in ("role", "start", "intro", "dates_legacy", "work", "results")
+    )
+    return {
+        "company": str(raw.get("company") or ""),
+        "positions": [position] if described else [],
+    }
+
+
+def _normalize_entry(raw: dict[str, Any]) -> dict[str, Any]:
+    if "positions" not in raw:
+        return _migrate_entry(raw)
+    if not isinstance(raw["positions"], list):
+        raise ValueError("The positions of an experience entry must be a list.")
+    for position in raw["positions"]:
+        if not isinstance(position, dict):
+            raise ValueError("Every position must be an object.")
+    return {
+        "company": str(raw.get("company") or ""),
+        "positions": [_normalize_position(item) for item in raw["positions"]],
+    }
+
+
 def normalize_document(data: dict[str, Any]) -> dict[str, Any]:
-    """Validate and fill optional keys without changing the JSON schema."""
+    """Validate, migrate and fill optional keys of a CV document."""
     if not isinstance(data, dict):
         raise ValueError("The CV document must be a JSON object.")
     for key in ("profile", "experience", "education"):
@@ -110,21 +197,13 @@ def normalize_document(data: dict[str, Any]) -> dict[str, Any]:
             if key in normalized["profile"]
         }
     )
-    normalized["profile"]["skills"] = list(
-        normalized["profile"].get("skills") or []
-    )
-    normalized["profile"]["summary"] = list(
-        normalized["profile"].get("summary") or []
-    )
+    for key in ("skills", "languages", "summary"):
+        normalized["profile"][key] = list(normalized["profile"].get(key) or [])
     normalized["experience"] = []
     for raw_entry in data["experience"]:
         if not isinstance(raw_entry, dict):
             raise ValueError("Every experience entry must be an object.")
-        entry = empty_experience()
-        entry.update({key: value for key, value in raw_entry.items() if key in entry})
-        entry["work"] = list(entry.get("work") or [])
-        entry["results"] = list(entry.get("results") or [])
-        normalized["experience"].append(entry)
+        normalized["experience"].append(_normalize_entry(raw_entry))
     normalized["education"].update(
         {
             key: value
@@ -133,9 +212,12 @@ def normalize_document(data: dict[str, Any]) -> dict[str, Any]:
         }
     )
     # Optional keys: documents written before themes or locales existed fall
-    # back silently, so no migration or schema_version bump is required.
+    # back silently. The experience section is the one part that really changed
+    # shape, so it carries a version — `_normalize_entry` detects and upgrades
+    # schema-1 entries on both load and import.
     normalized["theme"] = get_theme(data.get("theme"))["key"]
     normalized["locale"] = get_locale(data.get("locale"))["code"]
+    normalized["schema_version"] = SCHEMA_VERSION
     return normalized
 
 
