@@ -8,6 +8,10 @@ import customtkinter as ctk
 from cv_builder.ui.theme import COLORS, Fonts, button
 
 
+# One dropdown height across the app (design spec §5.3).
+MENU_HEIGHT = 34
+
+
 class PlaceholderEntry(ctk.CTkEntry):
     """CTkEntry placeholder overlay that never mutates its StringVar."""
 
@@ -130,14 +134,21 @@ def option_menu(
     variable: tk.StringVar,
     command=None,
     width: int = 250,
-    height: int = 36,
+    height: int = MENU_HEIGHT,
     fg_color: str | None = None,
 ) -> ctk.CTkOptionMenu:
     """The one dropdown look this app uses, everywhere it uses one.
 
+    The default height is the spec's 34 px (design spec §5.3): the CV-language
+    selector and the experience date pickers must read as one component, so a
+    new dropdown should take the default rather than pick its own number.
+
     `fg_color` defaults to the surface white that reads against the editor
     background; pass `surface_alt` when the menu sits on a white card, where
     white on white would leave only the arrow visible.
+
+    Width is always fixed — never grid this with `sticky="ew"`. CTkOptionMenu
+    draws its arrow at the configured width, not the allocated one.
     """
     return ctk.CTkOptionMenu(
         parent,

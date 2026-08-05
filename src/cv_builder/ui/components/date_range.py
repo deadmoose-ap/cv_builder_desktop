@@ -100,7 +100,6 @@ class DateRangeField(ctk.CTkFrame):
                 variable=variable,
                 command=lambda _value: self._notify(),
                 width=width,
-                height=40,
                 fg_color=COLORS["surface_alt"],
             )
             menu.grid(

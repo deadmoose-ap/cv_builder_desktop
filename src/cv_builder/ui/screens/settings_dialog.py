@@ -107,6 +107,8 @@ class SettingsDialog(ctk.CTkToplevel):
             values=[locale["label"] for locale in locales.LOCALES],
             variable=self.language,
             command=self._on_selected,
+            # Its own window, its own 250x36 grid — not the editor's 34 px.
+            height=36,
         ).grid(row=1, column=0, sticky="w", pady=(8, 10))
         self._hint(body, 2, "settings.interface_hint", (0, 0))
 

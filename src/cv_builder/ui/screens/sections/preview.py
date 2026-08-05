@@ -96,7 +96,6 @@ class PreviewSection(Section):
             variable=self.locale_label,
             command=self._on_locale_selected,
             width=OPTIONS_WIDTH,
-            height=34,
         )
         self.locale_menu.grid(row=2, column=0, sticky="ew")
 
