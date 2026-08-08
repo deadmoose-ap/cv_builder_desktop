@@ -59,7 +59,7 @@ app = BUNDLE(
     icon='assets/CVBuilder.icns',
     bundle_identifier=None,
     info_plist={
-        'CFBundleShortVersionString': '1.2.3',
+        'CFBundleShortVersionString': '0.1.0',
         'CFBundleVersion': '9',
         'NSHighResolutionCapable': True,
     },
