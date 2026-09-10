@@ -4,6 +4,7 @@ from copy import deepcopy
 from pathlib import Path
 
 from reportlab.pdfbase import pdfmetrics
+from reportlab.platypus import Paragraph
 
 from cv_builder.domain import cv_labels, locales, themes
 from cv_builder.domain.completion import calculate_completion
@@ -17,13 +18,25 @@ from cv_builder.domain.model import (
 from cv_builder.domain.text import split_lines, split_paragraphs
 from cv_builder.exporters import page_style, pdf
 from cv_builder.exporters.pdf import generate_pdf
-from cv_builder.exporters.preview_layout import build_pages
+from cv_builder.exporters.preview_layout import _wrap, build_pages
 from cv_builder.exporters.story import sidebar_story
 from cv_builder.infrastructure.library import CVLibrary
 from cv_builder.infrastructure.settings import AppSettings, SettingsStore
 from cv_builder.ui.i18n import Translator
 from cv_builder.ui import strings as ui_strings
 from cv_builder.ui.strings import en as ui_strings_en
+
+
+def _paragraph_line_texts(paragraph: Paragraph) -> list[str]:
+    """Extract ReportLab line text from both tuple and FragLine layouts."""
+    lines = []
+    for line in paragraph.blPara.lines:
+        words = line.words if hasattr(line, "words") else line[1]
+        if words and isinstance(words[0], str):
+            lines.append(" ".join(words))
+        else:
+            lines.append("".join(getattr(fragment, "text", "") for fragment in words))
+    return lines
 
 
 def test_json_round_trip(tmp_path: Path):
@@ -35,9 +48,17 @@ def test_json_round_trip(tmp_path: Path):
 
 def test_pdf_generation(tmp_path: Path):
     target = tmp_path / "sample.pdf"
-    generate_pdf(new_document(), target)
+    generate_pdf(example_document(), target)
     assert target.read_bytes().startswith(b"%PDF-")
     assert target.stat().st_size > 10_000
+    assert len(re.findall(rb"/Type\s*/Page[^s]", target.read_bytes())) > 0
+
+
+def test_empty_document_exports_one_page(tmp_path: Path):
+    target = tmp_path / "empty.pdf"
+    generate_pdf(new_document(), target)
+    assert target.read_bytes().startswith(b"%PDF-")
+    assert len(re.findall(rb"/Type\s*/Page[^s]", target.read_bytes())) == 1
 
 
 def test_completion_is_explainable_and_bounded():
@@ -144,11 +165,10 @@ def test_preview_matches_the_exported_page_count(tmp_path: Path):
     assert pages[0].sidebar_color == "#c2f8cb"
     sidebar_lines = [line for line in pages[0].lines if line.x < page_style.MAIN_X]
     assert "CONTACT" in {line.text for line in sidebar_lines}
-    assert pages[0].lines[-1].text == "Page 1"
     assert all(line.color in ("#0b0b0b", "#161616") for line in sidebar_lines)
+    assert all("Page " not in line.text for page in pages for line in page.lines)
     # The contact block is printed on the first page only.
-    assert all(line.x >= page_style.MAIN_X for line in pages[1].lines[:-1])
-    assert pages[1].lines[-1].text == "Page 2"
+    assert all(line.x >= page_style.MAIN_X for line in pages[1].lines)
 
 
 def test_preview_and_export_agree_at_every_length(tmp_path: Path):
@@ -167,17 +187,126 @@ def test_preview_and_export_agree_at_every_length(tmp_path: Path):
         assert len(build_pages(data)) == exported, f"{count} companies"
 
 
-def test_the_sidebar_lists_languages_after_skills():
+def test_the_sidebar_orders_optional_blocks_and_uses_bullets():
     data = normalize_document(example_document())
     data["locale"] = "ru"
     texts = [item.text for item in sidebar_story(data) if hasattr(item, "text")]
-    assert texts.index("КЛЮЧЕВЫЕ НАВЫКИ") < texts.index("ЯЗЫКИ")
-    assert "English - C1\nSpanish - B2" in texts
+    assert texts.index("КОНТАКТЫ") < texts.index("ПОРТФОЛИО")
+    assert texts.index("ПОРТФОЛИО") < texts.index("ЯЗЫКИ")
+    assert texts.index("ЯЗЫКИ") < texts.index("КЛЮЧЕВЫЕ НАВЫКИ")
+    assert "• English - C1" in texts
+    assert "• Spanish - B2" in texts
+    assert "• https://your-portfolio.com" in texts
+    assert "English - C1\nSpanish - B2" not in texts
 
     # An empty list prints no heading rather than an empty block.
     data["profile"]["languages"] = []
     empty = [item.text for item in sidebar_story(data) if hasattr(item, "text")]
     assert "ЯЗЫКИ" not in empty
+
+
+def test_optional_profile_fields_normalize_without_a_schema_bump():
+    legacy = new_document()
+    del legacy["profile"]["telegram"]
+    del legacy["profile"]["portfolio"]
+    normalized = normalize_document(legacy)
+    assert normalized["schema_version"] == legacy["schema_version"]
+    assert normalized["profile"]["telegram"] == ""
+    assert normalized["profile"]["portfolio"] == []
+
+    imported = deepcopy(legacy)
+    imported["profile"]["telegram"] = 12345
+    imported["profile"]["portfolio"] = ["https://example.com", 42]
+    normalized = normalize_document(imported)
+    assert normalized["profile"]["telegram"] == "12345"
+    assert normalized["profile"]["portfolio"] == ["https://example.com", "42"]
+
+    assert calculate_completion(normalized) == calculate_completion(legacy)
+
+
+def test_sidebar_omits_empty_optional_blocks_and_keeps_contact_plain():
+    data = new_document()
+    data["profile"]["telegram"] = "t.me/alex"
+    items = [item for item in sidebar_story(data) if hasattr(item, "text")]
+    assert [item.text for item in items] == ["CONTACT", "t.me/alex"]
+    assert all(not item.text.startswith("• ") for item in items[1:])
+
+
+def test_sidebar_geometry_and_long_url_wrap_match_reportlab(tmp_path: Path):
+    assert page_style.SIDEBAR_WIDTH == 176
+    assert page_style.MAIN_X == 197
+    assert page_style.MAIN_WIDTH == 381
+    assert page_style.style("side_body")["size"] == 9.5
+    assert page_style.style("side_head")["bold"] is True
+
+    url = "https://example.com/" + "very-long-path-" * 12 + "?utm_source=example&utm_medium=profile"
+    data = new_document()
+    data["profile"].update(
+        {
+            "name": "Alex Morgan",
+            "headline": "Product Designer",
+            "summary": [url],
+            "portfolio": [url],
+        }
+    )
+    pages = build_pages(data)
+    sidebar_url = next(item.text for item in sidebar_story(data) if getattr(item, "text", "").startswith("• "))
+    expected = _wrap(
+        sidebar_url,
+        page_style.style("side_bullet")["size"],
+        page_style.SIDEBAR_TEXT_WIDTH,
+        page_style.style("side_bullet")["left_indent"],
+        page_style.style("side_bullet")["first_line_indent"],
+        pdf.register_fonts(data["locale"]),
+    )
+    preview = [
+        line.text
+        for line in pages[0].lines
+        if line.x < page_style.MAIN_X and line.text in {value for _, value in expected}
+    ]
+    assert preview == [value for _, value in expected]
+
+    styles = pdf._styles("#29414c", pdf.register_fonts("en"), pdf.register_fonts("en"), False)
+    paragraph = Paragraph(pdf._safe(sidebar_url), styles["side_bullet"])
+    paragraph.wrap(page_style.SIDEBAR_TEXT_WIDTH, 800)
+    reportlab_lines = _paragraph_line_texts(paragraph)
+    assert reportlab_lines == [value for _, value in expected]
+
+    target = tmp_path / "long-url.pdf"
+    generate_pdf(data, target)
+    exported = len(re.findall(rb"/Type\s*/Page[^s]", target.read_bytes()))
+    assert len(pages) == exported
+
+
+def test_preview_wrap_does_not_split_regular_words(tmp_path: Path):
+    data = new_document()
+    data["profile"].update(
+        {
+            "name": "Alex Morgan",
+            "headline": "Product Designer",
+            "summary": [("A normal word sequence " * 80).strip()],
+        }
+    )
+    font = pdf.register_fonts(data["locale"])
+    text = data["profile"]["summary"][0]
+    expected = _wrap(
+        text,
+        page_style.style("body")["size"],
+        page_style.MAIN_WIDTH,
+        page_style.style("body")["left_indent"],
+        page_style.style("body")["first_line_indent"],
+        font,
+    )
+    styles = pdf._styles("#29414c", font, font, False)
+    paragraph = Paragraph(pdf._safe(text), styles["body"])
+    paragraph.wrap(page_style.MAIN_WIDTH, 800)
+    reportlab_lines = _paragraph_line_texts(paragraph)
+    assert reportlab_lines == [value for _, value in expected]
+
+    target = tmp_path / "regular-words.pdf"
+    generate_pdf(data, target)
+    exported = len(re.findall(rb"/Type\s*/Page[^s]", target.read_bytes()))
+    assert len(build_pages(data)) == exported
 
 
 def test_local_library_create_autosave_rename_import_and_delete(tmp_path: Path):
@@ -256,9 +385,7 @@ def test_cv_labels_cover_every_locale():
         headings = cv_labels.LABELS[code]
         assert set(headings) == expected, code
         assert all(value.strip() for value in headings.values()), code
-        # Every locale must number its pages, and must do so with the number.
-        assert cv_labels.page_label(code, 2).strip() != ""
-        assert "2" in cv_labels.page_label(code, 2)
+        assert "page" not in headings
     # An unknown locale falls back rather than raising mid-export.
     assert cv_labels.labels("kl") is cv_labels.LABELS["en"]
 
@@ -337,7 +464,7 @@ def test_localized_headings_reach_both_renderers(tmp_path: Path):
     }
     assert "КОНТАКТЫ" in sidebar
     assert "CONTACT" not in sidebar
-    assert pages[0].lines[-1].text == "Стр. 1"
+    assert all("Стр." not in line.text for line in pages[0].lines)
     assert "ОПЫТ РАБОТЫ" in {line.text for line in pages[0].lines}
 
     # The same document still paginates identically once exported.

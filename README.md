@@ -10,7 +10,8 @@ CV Builder is a local desktop application for creating a structured CV and expor
 - Month/year pickers with an "I work here now" checkbox; durations and the
   combined tenure at a company are computed, and dates print in the CV's own
   language
-- Core skills and spoken languages, both printed in the sidebar
+- Optional Telegram and portfolio links, plus core skills and spoken
+  languages printed in the sidebar (portfolio, languages, then skills)
 - Add, edit, delete, and reorder companies and positions
 - Calm Workspace navigation with CV completion progress
 - Rounded CustomTkinter cards, fields, and action hierarchy

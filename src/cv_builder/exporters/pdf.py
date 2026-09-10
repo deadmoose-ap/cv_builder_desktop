@@ -15,7 +15,6 @@ from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import BaseDocTemplate, Frame, KeepTogether, PageTemplate, Paragraph, Spacer
 
 from cv_builder.domain import themes
-from cv_builder.domain.cv_labels import page_label
 from cv_builder.domain.locales import CJK_LOCALES, is_cjk
 from cv_builder.exporters import page_style
 from cv_builder.exporters.story import Gap, Group, Para, main_story, sidebar_story
@@ -161,6 +160,7 @@ def _styles(
             # default whitespace-based wrapping would run a whole paragraph
             # off the page as one unbreakable "word".
             wordWrap="CJK" if cjk else None,
+            splitLongWords=1,
             fontSize=definition["size"],
             leading=definition["leading"],
             spaceBefore=definition["space_before"],
@@ -203,13 +203,6 @@ def generate_pdf(data: dict[str, Any], output_path: str | Path) -> None:
                 y -= height
                 item.drawOn(canvas, page_style.SIDEBAR_X, y)
                 y -= 2
-        canvas.setFont(font_name, page_style.PAGE_NUMBER_SIZE)
-        canvas.setFillColor(colors.HexColor(page_style.PAGE_NUMBER_COLOR))
-        canvas.drawRightString(
-            PAGE_WIDTH - page_style.PAGE_NUMBER_RIGHT,
-            page_style.PAGE_NUMBER_BOTTOM,
-            page_label(locale, doc.page),
-        )
         canvas.restoreState()
 
     document = BaseDocTemplate(
@@ -231,4 +224,7 @@ def generate_pdf(data: dict[str, Any], output_path: str | Path) -> None:
         bottomPadding=0,
     )
     document.addPageTemplates([PageTemplate(id="cv", frames=[frame], onPage=page_decoration)])
-    document.build(flowables(main_story(data)))
+    story = flowables(main_story(data))
+    # Keep an empty normalized document a valid one-page PDF, matching the
+    # preview canvas instead of producing a zero-page ReportLab file.
+    document.build(story or [Spacer(1, 1)])

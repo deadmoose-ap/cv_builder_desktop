@@ -58,6 +58,9 @@ STRINGS: dict[str, str] = {
     "profile.location": "所在地",
     "profile.email": "メールアドレス",
     "profile.linkedin": "LinkedIn またはウェブサイト",
+    "profile.telegram": "Telegram",
+    "profile.portfolio": "ポートフォリオのリンク",
+    "profile.portfolio_hint": "1 行に 1 つの URL",
     "profile.skills": "スキル",
     "profile.skills_hint": "1 行に 1 つ",
     "profile.languages": "語学",
@@ -181,6 +184,8 @@ STRINGS: dict[str, str] = {
     "placeholder.location": "都市、国",
     "placeholder.email": "your.email@example.com",
     "placeholder.linkedin": "linkedin.com/in/your-profile",
+    "placeholder.telegram": "t.me/your-handle",
+    "placeholder.portfolio": "https://your-portfolio.com\nhttps://github.com/your-profile",
     "placeholder.skills": "スキル 1\nスキル 2\nスキル 3",
     "placeholder.languages": "英語 - C1\nスペイン語 - B2",
     "placeholder.summary": (

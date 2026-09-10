@@ -23,6 +23,11 @@ EXAMPLE_DATA: dict[str, Any] = {
         "location": "YOUR CITY, YOUR COUNTRY",
         "email": "your.email@example.com",
         "linkedin": "linkedin.com/in/your-profile",
+        "telegram": "t.me/your-handle",
+        "portfolio": [
+            "https://your-portfolio.com",
+            "https://github.com/your-profile",
+        ],
         "skills": ["SKILL ONE", "SKILL TWO", "SKILL THREE"],
         "languages": ["English - C1", "Spanish - B2"],
         "summary": [
@@ -77,6 +82,8 @@ DEFAULT_DATA: dict[str, Any] = {
         "location": "",
         "email": "",
         "linkedin": "",
+        "telegram": "",
+        "portfolio": [],
         "skills": [],
         "languages": [],
         "summary": [],
@@ -196,6 +203,12 @@ def normalize_document(data: dict[str, Any]) -> dict[str, Any]:
             for key, value in data["profile"].items()
             if key in normalized["profile"]
         }
+    )
+    for key in ("name", "headline", "location", "email", "linkedin", "telegram"):
+        normalized["profile"][key] = str(normalized["profile"].get(key) or "")
+    portfolio = normalized["profile"].get("portfolio")
+    normalized["profile"]["portfolio"] = (
+        [str(value) for value in portfolio] if isinstance(portfolio, list) else []
     )
     for key in ("skills", "languages", "summary"):
         normalized["profile"][key] = list(normalized["profile"].get(key) or [])

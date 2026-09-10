@@ -46,24 +46,31 @@ def _clean(values: Iterable[Any]) -> list[str]:
 
 
 def sidebar_story(data: dict[str, Any]) -> list[Item]:
-    """Contact, skills and languages, drawn on the first page only."""
+    """Contact and optional sidebar lists, drawn on the first page only."""
     profile = data.get("profile", {})
     text = labels(data.get("locale"))
-    story: list[Item] = [
-        Para(text["contact"], "side_head"),
-        Para(str(profile.get("email", "")), "side_body"),
-        Para(str(profile.get("linkedin", "")), "side_body"),
-        Gap(12),
-        Para(text["core_skills"], "side_head"),
-        Para("\n".join(_clean(profile.get("skills", []))), "side_body"),
-    ]
-    languages = _clean(profile.get("languages", []))
-    if languages:
-        story += [
-            Gap(12),
-            Para(text["languages"], "side_head"),
-            Para("\n".join(languages), "side_body"),
-        ]
+    story: list[Item] = []
+
+    def add_block(title: str, values: Iterable[Any], *, bullet: bool = False) -> None:
+        cleaned = _clean(values)
+        if not cleaned:
+            return
+        if story:
+            story.append(Gap(9))
+        story.append(Para(title, "side_head"))
+        style = "side_bullet" if bullet else "side_body"
+        story.extend(
+            Para(value if not bullet else f"{BULLET}{value}", style)
+            for value in cleaned
+        )
+
+    add_block(
+        text["contact"],
+        (profile.get("email"), profile.get("linkedin"), profile.get("telegram")),
+    )
+    add_block(text["portfolio"], profile.get("portfolio", []), bullet=True)
+    add_block(text["languages"], profile.get("languages", []), bullet=True)
+    add_block(text["core_skills"], profile.get("skills", []), bullet=True)
     return story
 
 
@@ -131,8 +138,16 @@ def _position_body(position: dict[str, Any], text: dict[str, str]) -> list[Item]
         values = _clean(position.get(key, []))
         if not values:
             continue
-        label = f"{text[label_key]}{text['list_suffix']}"
-        body.append(Para(f"{label}\n{BULLET}{values[0]}"))
+        if body:
+            body.append(Gap(5))
+        body.append(
+            Group(
+                (
+                    Para(text[label_key], "subhead"),
+                    Para(f"{BULLET}{values[0]}", "bullet"),
+                )
+            )
+        )
         body += [Para(f"{BULLET}{value}", "bullet") for value in values[1:]]
     return body
 
@@ -141,34 +156,58 @@ def main_story(data: dict[str, Any]) -> list[Item]:
     """Profile, summary, experience and education in reading order."""
     profile = data.get("profile", {})
     text = labels(data.get("locale"))
-    story: list[Item] = [
-        Para(str(profile.get("name", "")), "name"),
-        Para(str(profile.get("headline", "")), "headline"),
-        Para(str(profile.get("location", "")), "location"),
-        Para(text["summary"], "section"),
-    ]
-    story += [Para(value) for value in _clean(profile.get("summary", []))]
-    story.append(Para(text["experience"], "section"))
+    story: list[Item] = []
+    for key, style_name in (
+        ("name", "name"),
+        ("headline", "headline"),
+        ("location", "location"),
+    ):
+        value = str(profile.get(key, "") or "")
+        if value.strip():
+            story.append(Para(value, style_name))
+
+    summary = _clean(profile.get("summary", []))
+    if summary:
+        story.append(Para(text["summary"], "section"))
+        story += [Para(value) for value in summary]
 
     locale = data.get("locale")
+    experience_story: list[Item] = []
     for entry in data.get("experience", []):
         positions = entry.get("positions") or []
-        # The company name is kept with the first position's header so a page
-        # break can never orphan it; later positions carry their own header.
-        header: list[Para] = [Para(company_line(entry, locale), "company")]
-        for index, position in enumerate(positions or [{}]):
-            header += _position_header(position, locale)
-            story.append(Group(tuple(header)))
-            story += _position_body(position, text)
-            header = []
-            if index < len(positions) - 1:
-                story.append(Gap(6))
-        story.append(Gap(12))
+        company = company_line(entry, locale)
+        entry_story: list[Item] = []
+        if positions:
+            # The company name is kept with the first position's header so a
+            # page break can never orphan it; later positions carry their own
+            # header.
+            for index, position in enumerate(positions):
+                header: list[Para] = []
+                if index == 0 and company.strip():
+                    header.append(Para(company, "company"))
+                header += _position_header(position, locale)
+                if header:
+                    entry_story.append(Group(tuple(header)))
+                entry_story += _position_body(position, text)
+                if index < len(positions) - 1 and entry_story:
+                    entry_story.append(Gap(6))
+        elif company.strip():
+            entry_story.append(Group((Para(company, "company"),)))
+        if entry_story:
+            experience_story += entry_story
+            experience_story.append(Gap(12))
+
+    if experience_story:
+        story.append(Para(text["experience"], "section"))
+        story += experience_story
 
     education = data.get("education", {})
-    story += [
-        Para(text["education"], "section"),
-        Para(str(education.get("institution", "")), "company"),
-        Para(str(education.get("qualification", "")), "dates"),
-    ]
+    education_items: list[Para] = []
+    for key, style_name in (("institution", "company"), ("qualification", "dates")):
+        value = str(education.get(key, "") or "")
+        if value.strip():
+            education_items.append(Para(value, style_name))
+    if education_items:
+        story.append(Para(text["education"], "section"))
+        story += education_items
     return story

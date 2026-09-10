@@ -56,6 +56,9 @@ STRINGS: dict[str, str] = {
     "profile.location": "Ort",
     "profile.email": "E-Mail",
     "profile.linkedin": "LinkedIn oder Website",
+    "profile.telegram": "Telegram",
+    "profile.portfolio": "Portfolio-Links",
+    "profile.portfolio_hint": "Eine URL pro Zeile",
     "profile.skills": "Kernkompetenzen",
     "profile.skills_hint": "Eine Kompetenz pro Zeile",
     "profile.languages": "Sprachen",
@@ -179,6 +182,8 @@ STRINGS: dict[str, str] = {
     "placeholder.location": "IHRE STADT, IHR LAND",
     "placeholder.email": "ihre.email@example.com",
     "placeholder.linkedin": "linkedin.com/in/ihr-profil",
+    "placeholder.telegram": "t.me/ihr-handle",
+    "placeholder.portfolio": "https://ihr-portfolio.de\nhttps://github.com/ihr-profil",
     "placeholder.skills": "KOMPETENZ EINS\nKOMPETENZ ZWEI\nKOMPETENZ DREI",
     "placeholder.languages": "Englisch – C1\nSpanisch – B2",
     "placeholder.summary": (

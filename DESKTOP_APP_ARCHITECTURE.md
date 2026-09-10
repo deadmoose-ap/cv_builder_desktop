@@ -78,8 +78,10 @@ preview), the *description* of the document must live outside both renderers:
 - `exporters/story.py` — the ordered paragraphs, gaps and keep-together groups;
 - `exporters/pdf.py` — turns the story into ReportLab flowables;
 - `exporters/preview_layout.py` — paginates the same story into canvas lines using the
-  PDF font metrics, so the preview breaks lines and pages exactly like the
-  export.
+  PDF font metrics, including long-word wrapping, so the preview breaks lines
+  and pages exactly like the export. The story owns the optional sidebar block
+  order, list bullets, and experience subhead grouping; neither renderer adds
+  page-number footers.
 
 A regression test asserts that the preview and the exported PDF agree on the
 page count; without it the two renderers drift apart silently.
@@ -192,6 +194,10 @@ sidebar colour as a top-level `theme` key) live in the document JSON, not in
 the library index: an exported file must render the same way after import.
 Such keys stay optional — `normalize_document()` falls back to the default for
 older documents and rejects unknown values, so no migration is required.
+
+The profile also accepts optional `telegram` (string) and `portfolio` (list of
+strings) keys. `normalize_document()` supplies empty defaults for older or
+imported documents, so this additive change does not bump `schema_version`.
 
 A section that changes *shape*, however, does need one. CV Builder's experience
 section went from one entry per role to one entry per company holding a list of
@@ -352,6 +358,7 @@ For PDF:
 - escape user-supplied markup;
 - allow bundled and system font fallback;
 - account for `_MEIPASS` in PyInstaller;
+- wrap long URLs consistently with the preview and omit page-number footers;
 - test multi-page output and Unicode;
 - verify magic bytes and minimum file size.
 

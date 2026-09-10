@@ -42,6 +42,13 @@ def main() -> None:
 
         app.open_library_document(record.id)
         app.update_idletasks()
+        app.show_section("profile")
+        app.update_idletasks()
+        assert {"linkedin", "telegram"} <= set(editor.profile.entries)
+        assert editor.profile.vars["telegram"].get() == "t.me/your-handle"
+        assert editor.profile.portfolio_text.get("1.0", "end-1c") == (
+            "https://your-portfolio.com\nhttps://github.com/your-profile"
+        )
         for section in SECTION_ORDER:
             app.show_section(section)
             app.update_idletasks()

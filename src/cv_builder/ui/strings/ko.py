@@ -56,6 +56,9 @@ STRINGS: dict[str, str] = {
     "profile.location": "지역",
     "profile.email": "이메일",
     "profile.linkedin": "LinkedIn 또는 웹사이트",
+    "profile.telegram": "Telegram",
+    "profile.portfolio": "포트폴리오 링크",
+    "profile.portfolio_hint": "한 줄에 URL 하나씩",
     "profile.skills": "핵심 역량",
     "profile.skills_hint": "한 줄에 하나씩",
     "profile.languages": "언어",
@@ -179,6 +182,8 @@ STRINGS: dict[str, str] = {
     "placeholder.location": "도시, 국가",
     "placeholder.email": "your.email@example.com",
     "placeholder.linkedin": "linkedin.com/in/your-profile",
+    "placeholder.telegram": "t.me/your-handle",
+    "placeholder.portfolio": "https://your-portfolio.com\nhttps://github.com/your-profile",
     "placeholder.skills": "역량 1\n역량 2\n역량 3",
     "placeholder.languages": "영어 - C1\n스페인어 - B2",
     "placeholder.summary": (

@@ -5,11 +5,9 @@ other line comes from what the user typed. They belong to the document, not to
 the interface, so they follow the CV's own locale (`domain.locales`) and not
 the language the application window happens to be in.
 
-Latin and Cyrillic headings are stored already upper-cased because that is the
-typographic convention the layout was designed around; CJK scripts have no
-case, so their headings are stored as they should be read. `list_suffix` is the
-punctuation that separates a bullet-list heading from its first item — CJK
-convention is the fullwidth colon.
+Latin and Cyrillic section headings are stored already upper-cased because that
+is the typographic convention of the document. Experience list subheads stay
+in title case so they read as labels rather than another section heading.
 """
 from __future__ import annotations
 
@@ -17,71 +15,67 @@ from __future__ import annotations
 LABELS: dict[str, dict[str, str]] = {
     "en": {
         "contact": "CONTACT",
+        "portfolio": "PORTFOLIO",
         "core_skills": "CORE SKILLS",
         "languages": "LANGUAGES",
         "summary": "SUMMARY",
         "experience": "EXPERIENCE",
-        "key_responsibilities": "KEY RESPONSIBILITIES",
-        "results": "RESULTS",
+        "key_responsibilities": "Key responsibilities",
+        "results": "Results",
         "education": "EDUCATION",
-        "page": "Page {number}",
         "present": "Present",
-        "list_suffix": ":",
     },
     "ru": {
         "contact": "КОНТАКТЫ",
+        "portfolio": "ПОРТФОЛИО",
         "core_skills": "КЛЮЧЕВЫЕ НАВЫКИ",
         "languages": "ЯЗЫКИ",
         "summary": "О СЕБЕ",
         "experience": "ОПЫТ РАБОТЫ",
-        "key_responsibilities": "ОБЯЗАННОСТИ",
-        "results": "РЕЗУЛЬТАТЫ",
+        "key_responsibilities": "Обязанности",
+        "results": "Результаты",
         "education": "ОБРАЗОВАНИЕ",
-        "page": "Стр. {number}",
         "present": "настоящее время",
-        "list_suffix": ":",
     },
     "de": {
         "contact": "KONTAKT",
+        "portfolio": "PORTFOLIO",
         "core_skills": "KERNKOMPETENZEN",
         "languages": "SPRACHEN",
         "summary": "PROFIL",
         "experience": "BERUFSERFAHRUNG",
-        "key_responsibilities": "HAUPTAUFGABEN",
-        "results": "ERFOLGE",
+        "key_responsibilities": "Hauptaufgaben",
+        "results": "Erfolge",
         "education": "AUSBILDUNG",
-        "page": "Seite {number}",
         "present": "heute",
-        "list_suffix": ":",
     },
     "es": {
         "contact": "CONTACTO",
+        "portfolio": "PORTFOLIO",
         "core_skills": "COMPETENCIAS CLAVE",
         "languages": "IDIOMAS",
         "summary": "PERFIL",
         "experience": "EXPERIENCIA",
-        "key_responsibilities": "RESPONSABILIDADES",
-        "results": "LOGROS",
+        "key_responsibilities": "Responsabilidades",
+        "results": "Logros",
         "education": "FORMACIÓN",
-        "page": "Página {number}",
         "present": "actualidad",
-        "list_suffix": ":",
     },
     "fr": {
         "contact": "CONTACT",
+        "portfolio": "PORTFOLIO",
         "core_skills": "COMPÉTENCES CLÉS",
         "languages": "LANGUES",
         "summary": "PROFIL",
         "experience": "EXPÉRIENCE",
-        "key_responsibilities": "RESPONSABILITÉS",
-        "results": "RÉALISATIONS",
+        "key_responsibilities": "Responsabilités",
+        "results": "Réalisations",
         "education": "FORMATION",
-        "page": "Page {number}",
         "present": "aujourd'hui",
-        "list_suffix": ":",
     },
     "ja": {
         "contact": "連絡先",
+        "portfolio": "ポートフォリオ",
         "core_skills": "スキル",
         "languages": "語学",
         "summary": "概要",
@@ -89,12 +83,11 @@ LABELS: dict[str, dict[str, str]] = {
         "key_responsibilities": "主な業務",
         "results": "実績",
         "education": "学歴",
-        "page": "{number} ページ",
         "present": "現在",
-        "list_suffix": "：",
     },
     "ko": {
         "contact": "연락처",
+        "portfolio": "포트폴리오",
         "core_skills": "핵심 역량",
         "languages": "언어",
         "summary": "소개",
@@ -102,12 +95,11 @@ LABELS: dict[str, dict[str, str]] = {
         "key_responsibilities": "주요 업무",
         "results": "성과",
         "education": "학력",
-        "page": "{number} 페이지",
         "present": "현재",
-        "list_suffix": ":",
     },
     "zh-Hant": {
         "contact": "聯絡方式",
+        "portfolio": "作品集",
         "core_skills": "核心技能",
         "languages": "語言能力",
         "summary": "個人簡介",
@@ -115,12 +107,11 @@ LABELS: dict[str, dict[str, str]] = {
         "key_responsibilities": "主要職責",
         "results": "工作成果",
         "education": "教育背景",
-        "page": "第 {number} 頁",
         "present": "至今",
-        "list_suffix": "：",
     },
     "zh-Hans": {
         "contact": "联系方式",
+        "portfolio": "作品集",
         "core_skills": "核心技能",
         "languages": "语言能力",
         "summary": "个人简介",
@@ -128,9 +119,7 @@ LABELS: dict[str, dict[str, str]] = {
         "key_responsibilities": "主要职责",
         "results": "工作成果",
         "education": "教育背景",
-        "page": "第 {number} 页",
         "present": "至今",
-        "list_suffix": "：",
     },
 }
 
@@ -138,7 +127,3 @@ LABELS: dict[str, dict[str, str]] = {
 def labels(code: str | None) -> dict[str, str]:
     """Return the CV headings for a locale, falling back to English."""
     return LABELS.get(code or "", LABELS["en"])
-
-
-def page_label(code: str | None, number: int) -> str:
-    return labels(code)["page"].format(number=number)

@@ -13,18 +13,14 @@ from cv_builder.domain.themes import TEXT_DARK, sidebar_palette
 
 PAGE_WIDTH = 612.0
 PAGE_HEIGHT = 792.0
-SIDEBAR_WIDTH = 202.0
-MAIN_X = 223.0
-MAIN_WIDTH = 355.0
+SIDEBAR_WIDTH = 176.0
+MAIN_X = 197.0
+MAIN_WIDTH = 381.0
 MAIN_TOP = 40.0
 MAIN_BOTTOM = 38.0
 SIDEBAR_X = 22.0
 SIDEBAR_TOP = 43.0
-SIDEBAR_TEXT_WIDTH = 150.0
-PAGE_NUMBER_SIZE = 9.0
-PAGE_NUMBER_COLOR = "#1d1d1d"
-PAGE_NUMBER_RIGHT = 30.0
-PAGE_NUMBER_BOTTOM = 18.0
+SIDEBAR_TEXT_WIDTH = 132.0
 
 # Style name -> size, leading, spacing, colour role and indents.
 STYLES: dict[str, dict[str, Any]] = {
@@ -60,10 +56,32 @@ STYLES: dict[str, dict[str, Any]] = {
         "left_indent": 12,
         "first_line_indent": -9,
     },
-    "side_head": {"size": 14, "leading": 18, "space_after": 6, "color": "heading"},
-    "side_body": {"size": 10.5, "leading": 15, "space_after": 7, "color": "body"},
+    "subhead": {
+        "size": 10.5,
+        "leading": 13,
+        "space_before": 4,
+        "space_after": 2,
+        "color": "body",
+        "bold": True,
+    },
+    "side_head": {
+        "size": 11.5,
+        "leading": 14,
+        "space_after": 5,
+        "color": "heading",
+        "bold": True,
+    },
+    "side_body": {"size": 9.5, "leading": 12, "space_after": 4, "color": "body"},
+    "side_bullet": {
+        "size": 9.5,
+        "leading": 12,
+        "space_after": 3,
+        "color": "body",
+        "left_indent": 8,
+        "first_line_indent": -6,
+    },
 }
-SIDEBAR_STYLES = ("side_head", "side_body")
+SIDEBAR_STYLES = ("side_head", "side_body", "side_bullet")
 
 
 def style(name: str) -> dict[str, Any]:

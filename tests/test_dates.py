@@ -6,7 +6,8 @@ import pytest
 from cv_builder.domain import dates
 from cv_builder.domain.locales import LOCALE_CODES
 from cv_builder.domain.model import SCHEMA_VERSION, normalize_document
-from cv_builder.exporters.story import company_line, main_story, position_dates_line
+from cv_builder.exporters import page_style
+from cv_builder.exporters.story import Group, Gap, company_line, main_story, position_dates_line
 
 
 TODAY = date(2026, 8, 4)
@@ -218,3 +219,41 @@ def test_the_company_name_is_bold_and_larger_than_the_role():
     assert page_style.style("dates")["size"] > page_style.style("place")["size"]
     assert page_style.style("dates")["color"] == "meta"
     assert page_style.style("place")["color"] == "meta"
+
+
+def test_responsibilities_and_results_are_separate_keep_together_blocks():
+    data = normalize_document(document([
+        {
+            "company": "Playrix",
+            "positions": [
+                {
+                    "role": "Project Manager",
+                    "start": "2025-10",
+                    "current": True,
+                    "place": "Сербия",
+                    "intro": "Led the product launch.",
+                    "work": ["Owned planning", "Coordinated delivery"],
+                    "results": ["Cut cycle time", "Improved quality"],
+                }
+            ],
+        }
+    ]))
+    story = main_story(data)
+    groups = [item for item in story if isinstance(item, Group)]
+    responsibility = next(
+        group for group in groups if group.items[0].text == "Обязанности"
+    )
+    results = next(group for group in groups if group.items[0].text == "Результаты")
+
+    assert [item.style for item in responsibility.items] == ["subhead", "bullet"]
+    assert [item.text for item in responsibility.items] == [
+        "Обязанности",
+        "• Owned planning",
+    ]
+    assert [item.style for item in results.items] == ["subhead", "bullet"]
+    assert [item.text for item in results.items] == ["Результаты", "• Cut cycle time"]
+    assert any(item.text == "• Coordinated delivery" for item in story if hasattr(item, "text"))
+    assert any(item.text == "• Improved quality" for item in story if hasattr(item, "text"))
+    assert page_style.style("subhead")["bold"] is True
+    assert all(not item.text.isupper() for item in (responsibility.items[0], results.items[0]))
+    assert any(isinstance(item, Gap) and item.height == 5 for item in story)

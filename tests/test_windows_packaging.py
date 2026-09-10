@@ -39,9 +39,9 @@ def test_windows_release_version_and_icon_are_connected():
     build_script = (ROOT / "build_windows.ps1").read_text(encoding="utf-8")
 
     assert '#define MyAppVersion "1.2.3"' in installer
-    assert '#define MyAppBuildVersion "1.2.3.9"' in installer
+    assert '#define MyAppBuildVersion "1.2.3.10"' in installer
     assert "SetupIconFile=..\\assets\\CVBuilder.ico" in installer
-    assert "filevers=(1, 2, 3, 9)" in version_info
+    assert "filevers=(1, 2, 3, 10)" in version_info
     assert "StringStruct('ProductVersion', '1.2.3')" in version_info
     assert '--icon "assets\\CVBuilder.ico"' in build_script
     assert '--version-file "packaging\\windows-version-info.txt"' in build_script

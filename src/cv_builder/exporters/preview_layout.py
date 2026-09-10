@@ -12,7 +12,6 @@ from typing import Any
 from reportlab.pdfbase import pdfmetrics
 
 from cv_builder.domain import themes
-from cv_builder.domain.cv_labels import page_label
 from cv_builder.domain.locales import is_cjk
 from cv_builder.exporters import page_style
 from cv_builder.exporters.story import Gap, Group, Item, Para, main_story, sidebar_story
@@ -60,6 +59,30 @@ def _wrap(
     spaces break between characters instead of between words.
     """
     result: list[tuple[float, str]] = []
+
+    def offset() -> float:
+        return left + first if not result else left
+
+    def available() -> float:
+        return width - offset()
+
+    def append_split_word(word: str) -> None:
+        """Place a word that is wider than the available line width."""
+        remainder = word
+        while remainder:
+            fitted = ""
+            for character in remainder:
+                candidate = fitted + character
+                if fitted and _text_width(candidate, size, font) > available():
+                    break
+                fitted = candidate
+            if not fitted:
+                # Keep making progress even when a font reports one glyph wider
+                # than the available column (ReportLab also places that glyph).
+                fitted = remainder[0]
+            result.append((offset(), fitted))
+            remainder = remainder[len(fitted) :]
+
     for raw in text.split("\n"):
         units = list(raw.strip()) if cjk else raw.split()
         if not units:
@@ -67,18 +90,55 @@ def _wrap(
             continue
         current = ""
         for unit in units:
-            offset = left + first if not result else left
-            available = width - offset
             if cjk:
                 candidate = current + unit
-            else:
-                candidate = f"{current} {unit}" if current else unit
-            if current and _text_width(candidate, size, font) > available:
-                result.append((offset, current))
-                current = unit
-            else:
+                if current and _text_width(candidate, size, font) > available():
+                    result.append((offset(), current))
+                    current = ""
+                    candidate = unit
+                # A single CJK glyph should fit in the column; keep the
+                # fallback so a pathological font still makes progress.
+                if _text_width(candidate, size, font) <= available():
+                    current = candidate
+                else:
+                    result.append((offset(), unit))
+                    current = ""
+                continue
+            candidate = f"{current} {unit}" if current else unit
+            if current and _text_width(candidate, size, font) > available():
+                # ReportLab uses the remaining line for a word only when the
+                # word itself is wider than a full line. Ordinary words move
+                # intact to the next line instead of being split here.
+                full_line_available = width - left
+                if _text_width(unit, size, font) > full_line_available:
+                    prefix = ""
+                    for character in unit:
+                        candidate_with_prefix = f"{current} {prefix}{character}"
+                        if (
+                            prefix
+                            and _text_width(candidate_with_prefix, size, font)
+                            > available()
+                        ):
+                            break
+                        prefix += character
+                    if prefix:
+                        result.append((offset(), f"{current} {prefix}"))
+                        append_split_word(unit[len(prefix) :])
+                    else:
+                        result.append((offset(), current))
+                        append_split_word(unit)
+                    current = ""
+                    continue
+                result.append((offset(), current))
+                current = ""
+                candidate = unit
+            if _text_width(candidate, size, font) <= available():
                 current = candidate
-        result.append((left + first if not result else left, current))
+            else:
+                append_split_word(unit)
+                current = ""
+        if current:
+            result.append((offset(), current))
     return result
 
 
@@ -246,15 +306,4 @@ def build_pages(data: dict[str, Any]) -> list[Page]:
     sidebar.add(sidebar_story(data), paginate=False)
     pages[0].lines.extend(sidebar.pages[0].lines)
 
-    for number, page in enumerate(pages, start=1):
-        page.lines.append(
-            Line(
-                page_style.PAGE_WIDTH - page_style.PAGE_NUMBER_RIGHT,
-                page_style.PAGE_HEIGHT - page_style.PAGE_NUMBER_BOTTOM,
-                page_label(locale, number),
-                page_style.PAGE_NUMBER_SIZE,
-                page_style.PAGE_NUMBER_COLOR,
-                anchor="se",
-            )
-        )
     return pages
