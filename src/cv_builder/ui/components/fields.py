@@ -11,6 +11,45 @@ from cv_builder.ui.theme import COLORS, Fonts, button
 # One dropdown height across the app (design spec §5.3).
 MENU_HEIGHT = 34
 
+# macOS reports the Command modifier in the Tk state bit 0x8.  The keycodes
+# below are the physical ANSI positions, rather than translated keysyms, so a
+# non-US keyboard layout still gets the expected edit commands.
+_MAC_COMMAND_MASK = 0x8
+_MAC_EDIT_KEYCODES = {
+    0: "SelectAll",  # A
+    7: "Cut",        # X
+    8: "Copy",       # C
+    9: "Paste",      # V
+}
+
+
+def mac_edit_action(event, *, windowing_system: str = "aqua") -> str | None:
+    """Return the native edit virtual-event name for a Cmd shortcut.
+
+    This is deliberately a small, layout-independent bridge.  Tk's class
+    bindings already implement ``<<Copy>>``/``<<Paste>>``/etc.; we only need
+    to route the physical macOS keycode to those virtual events when the
+    normal physical shortcut path is unreliable.
+    """
+    if windowing_system != "aqua":
+        return None
+    if not (getattr(event, "state", 0) & _MAC_COMMAND_MASK):
+        return None
+    return _MAC_EDIT_KEYCODES.get(getattr(event, "keycode", None))
+
+
+def dispatch_mac_edit_shortcut(widget, event):
+    """Dispatch one native edit event, stopping the physical key once handled."""
+    try:
+        windowing_system = widget.tk.call("tk", "windowingsystem")
+    except (AttributeError, tk.TclError):
+        windowing_system = None
+    action = mac_edit_action(event, windowing_system=windowing_system)
+    if action is None:
+        return None
+    widget.event_generate(f"<<{action}>>")
+    return "break"
+
 
 class PlaceholderEntry(ctk.CTkEntry):
     """CTkEntry placeholder overlay that never mutates its StringVar."""
@@ -34,11 +73,18 @@ class PlaceholderEntry(ctk.CTkEntry):
         self._placeholder_label.bind(
             "<Button-1>", self._focus_from_placeholder, add="+"
         )
+        self._install_mac_edit_shortcuts(self._entry)
         self.bind("<FocusIn>", self._handle_focus_in, add="+")
         self.bind("<FocusOut>", self._handle_focus_out, add="+")
         if self._placeholder_variable is not None:
             self._placeholder_variable.trace_add("write", self._sync_placeholder)
         self.after_idle(self._sync_placeholder)
+
+    @staticmethod
+    def _install_mac_edit_shortcuts(widget) -> None:
+        widget.bind(
+            "<KeyPress>", lambda event: dispatch_mac_edit_shortcut(widget, event), add="+"
+        )
 
     def _focus_from_placeholder(self, _event=None):
         self._has_focus = True
@@ -76,9 +122,16 @@ class PlaceholderTextbox(ctk.CTkTextbox):
         self._placeholder_active = False
         self._value_text_color = kwargs.get("text_color", COLORS["text"])
         super().__init__(*args, **kwargs)
+        self._install_mac_edit_shortcuts(self._textbox)
         self.bind("<FocusIn>", self._handle_placeholder_focus_in, add="+")
         self.bind("<FocusOut>", self._handle_placeholder_focus_out, add="+")
         self.after_idle(self._show_placeholder_if_empty)
+
+    @staticmethod
+    def _install_mac_edit_shortcuts(widget) -> None:
+        widget.bind(
+            "<KeyPress>", lambda event: dispatch_mac_edit_shortcut(widget, event), add="+"
+        )
 
     def _raw_value(self) -> str:
         return super().get("1.0", "end-1c")

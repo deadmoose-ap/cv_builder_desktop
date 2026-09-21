@@ -30,6 +30,7 @@ def test_windows_icon_contains_all_required_sizes():
 
 
 def test_windows_release_version_and_icon_are_connected():
+    spec = (ROOT / "CVBuilder.spec").read_text(encoding="utf-8")
     installer = (ROOT / "packaging" / "windows-installer.iss").read_text(
         encoding="utf-8"
     )
@@ -38,10 +39,14 @@ def test_windows_release_version_and_icon_are_connected():
     ).read_text(encoding="utf-8")
     build_script = (ROOT / "build_windows.ps1").read_text(encoding="utf-8")
 
-    assert '#define MyAppVersion "1.2.3"' in installer
-    assert '#define MyAppBuildVersion "1.2.3.10"' in installer
+    assert "'CFBundleShortVersionString': '1.3.0'" in spec
+    assert "'CFBundleVersion': '11'" in spec
+    assert '#define MyAppVersion "1.3.0"' in installer
+    assert '#define MyAppBuildVersion "1.3.0.11"' in installer
     assert "SetupIconFile=..\\assets\\CVBuilder.ico" in installer
-    assert "filevers=(1, 2, 3, 10)" in version_info
-    assert "StringStruct('ProductVersion', '1.2.3')" in version_info
+    assert "filevers=(1, 3, 0, 11)" in version_info
+    assert "prodvers=(1, 3, 0, 11)" in version_info
+    assert "StringStruct('FileVersion', '1.3.0')" in version_info
+    assert "StringStruct('ProductVersion', '1.3.0')" in version_info
     assert '--icon "assets\\CVBuilder.ico"' in build_script
     assert '--version-file "packaging\\windows-version-info.txt"' in build_script
