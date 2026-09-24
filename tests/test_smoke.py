@@ -486,3 +486,41 @@ def test_settings_round_trip_and_survive_a_corrupt_file(tmp_path: Path):
     assert store.load().ui_locale == "en"
     store.path.write_text("{not json", encoding="utf-8")
     assert store.load().ui_locale == "en"
+
+
+def test_library_manual_order_sorting_and_v1_migration(tmp_path: Path):
+    import json
+
+    library = CVLibrary(tmp_path / "library")
+    first = library.create_document("beta")
+    second = library.create_document("Alpha")
+    third = library.create_document("gamma")
+    # New CVs open the manual order.
+    assert [r.id for r in library.list_documents()] == [third.id, second.id, first.id]
+    assert [r.title for r in library.list_documents("title")] == ["Alpha", "beta", "gamma"]
+
+    library.reorder_documents([first.id, third.id, "unknown"])
+    assert [r.id for r in library.list_documents()] == [first.id, third.id, second.id]
+
+    # Saving a CV never moves it in the manual order.
+    library.save_document(second.id, library.load_document(second.id))
+    assert library.list_documents()[2].id == second.id
+
+    # A version 1 index is seeded with the date order it used to show.
+    index = json.loads(library.index_path.read_text(encoding="utf-8"))
+    index["version"] = 1
+    index["documents"][0]["updated_at"] = "2000-01-01T00:00:00+00:00"
+    library.index_path.write_text(json.dumps(index), encoding="utf-8")
+    assert library.list_documents()[-1].id == first.id
+    assert json.loads(library.index_path.read_text(encoding="utf-8"))["version"] == 2
+
+
+def test_library_sort_setting_is_validated(tmp_path: Path):
+    from cv_builder.infrastructure.settings import SettingsStore
+
+    store = SettingsStore(tmp_path)
+    assert store.load().library_sort == "manual"
+    assert store.set_library_sort("title").library_sort == "title"
+    assert store.load().library_sort == "title"
+    store.path.write_text('{"library_sort": "bogus"}', encoding="utf-8")
+    assert store.load().library_sort == "manual"

@@ -1,7 +1,7 @@
 """Application-level preferences, stored next to the CV library.
 
-The first setting that is not a property of any single document: the interface
-language. Kept deliberately separate from the per-CV `locale` key in the
+Settings that are not a property of any single document: the interface
+language and the order of the start screen. Kept deliberately separate from the per-CV `locale` key in the
 document JSON — the two are switched independently.
 
 Same [ATP] contract as the library: UTF-8 JSON written to a temporary file and
@@ -16,7 +16,11 @@ from pathlib import Path
 from typing import Any
 
 from cv_builder.domain.locales import LOCALE_CODES
-from cv_builder.infrastructure.library import application_data_dir
+from cv_builder.infrastructure.library import (
+    DEFAULT_LIBRARY_SORT,
+    LIBRARY_SORTS,
+    application_data_dir,
+)
 
 
 DEFAULT_UI_LOCALE = "en"
@@ -27,6 +31,7 @@ class AppSettings:
     """Preferences that belong to the installation, not to a document."""
 
     ui_locale: str = DEFAULT_UI_LOCALE
+    library_sort: str = DEFAULT_LIBRARY_SORT
 
 
 class SettingsStore:
@@ -53,7 +58,10 @@ class SettingsStore:
         locale = stored.get("ui_locale")
         if not isinstance(locale, str) or locale not in LOCALE_CODES:
             locale = DEFAULT_UI_LOCALE
-        return AppSettings(ui_locale=locale)
+        sort = stored.get("library_sort")
+        if sort not in LIBRARY_SORTS:
+            sort = DEFAULT_LIBRARY_SORT
+        return AppSettings(ui_locale=locale, library_sort=sort)
 
     def save(self, settings: AppSettings) -> AppSettings:
         self.root.mkdir(parents=True, exist_ok=True)
@@ -66,3 +74,8 @@ class SettingsStore:
 
     def set_ui_locale(self, code: str) -> AppSettings:
         return self.save(replace(self.load(), ui_locale=code))
+
+    def set_library_sort(self, sort: str) -> AppSettings:
+        if sort not in LIBRARY_SORTS:
+            raise ValueError(f"Unknown library sort: {sort}")
+        return self.save(replace(self.load(), library_sort=sort))

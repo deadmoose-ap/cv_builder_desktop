@@ -37,6 +37,10 @@ STRINGS: dict[str, str] = {
     "library.action.rename": "重新命名",
     "library.action.duplicate": "複製",
     "library.action.delete": "刪除",
+    "library.sort.label": "排序",
+    "library.sort.manual": "自訂順序",
+    "library.sort.updated": "最近更新",
+    "library.sort.title": "名稱",
 
     "editor.all_cvs": "全部履歷",
     "editor.export_json": "匯出 JSON",
@@ -170,6 +174,7 @@ STRINGS: dict[str, str] = {
     "error.rename": "無法重新命名履歷",
     "error.duplicate": "無法複製履歷",
     "error.delete": "無法刪除履歷",
+    "error.reorder": "無法儲存履歷順序",
     "error.import": "無法匯入 JSON",
     "error.export_json": "無法匯出 JSON",
     "error.example": "無法儲存範例 JSON",

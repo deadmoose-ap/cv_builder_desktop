@@ -17,6 +17,9 @@ SECTION_ORDER = ("profile", "summary", "experience", "education", "preview")
 # Nav copy lives in `ui/strings/`; the order is what this module owns.
 # Sections that hold form data; `preview` renders them.
 FORM_SECTIONS = SECTION_ORDER[:-1]
+# Where CTkEntry starts drawing its text; the status line under the title
+# starts at the same x.
+TITLE_TEXT_INSET = 8
 
 
 class EditorScreen(ctk.CTkFrame):
@@ -48,8 +51,12 @@ class EditorScreen(ctk.CTkFrame):
             font=self.fonts.brand,
             text_color=COLORS["text"],
         ).grid(row=0, column=0, sticky="w", padx=(20, 0), pady=12)
+        # The save status sits under the title it belongs to, not across the
+        # header, so the eye finds both in one place.
+        title_block = ctk.CTkFrame(header, fg_color="transparent")
+        title_block.grid(row=0, column=1, sticky="w", padx=(18, 8))
         self.title_entry = ctk.CTkEntry(
-            header,
+            title_block,
             textvariable=self.controller.document_title_var,
             font=self.fonts.card_title,
             width=260,
@@ -60,14 +67,16 @@ class EditorScreen(ctk.CTkFrame):
             text_color=COLORS["text"],
             state="disabled",
         )
-        self.title_entry.grid(row=0, column=1, sticky="w", padx=(18, 8))
+        self.title_entry.grid(row=0, column=0, sticky="w")
         self._bind_title_entry()
         ctk.CTkLabel(
-            header,
+            title_block,
             textvariable=self.controller.status,
             font=self.fonts.small,
             text_color=COLORS["muted"],
-        ).grid(row=0, column=2, sticky="w", padx=(2, 10))
+            height=16,
+            anchor="w",
+        ).grid(row=1, column=0, sticky="w", padx=TITLE_TEXT_INSET)
 
         actions = ctk.CTkFrame(header, fg_color="transparent")
         actions.grid(row=0, column=3, sticky="e", padx=(0, 18), pady=11)
@@ -128,6 +137,24 @@ class EditorScreen(ctk.CTkFrame):
             self.title_entry.configure(
                 state="disabled", fg_color=COLORS["surface"], border_width=0
             )
+
+    def release_title_focus(self, event) -> None:
+        """Clicking anywhere else ends the title edit, which then commits.
+
+        Tk only moves keyboard focus when the click lands on something that
+        takes focus; buttons, labels and the background do not, so without
+        this the field stays focused and the new title is never applied.
+        """
+        entry = self.title_entry._entry
+        try:
+            focused = self.winfo_toplevel().focus_get()
+        except KeyError:  # focus inside a Tk-internal widget, e.g. a menu
+            return
+        if focused is not entry:
+            return
+        if event.widget in (entry, self.title_entry._canvas):
+            return
+        self.winfo_toplevel().focus_set()
 
     def _on_title_focus_out(self, _event=None):
         self.controller.commit_title_edit()

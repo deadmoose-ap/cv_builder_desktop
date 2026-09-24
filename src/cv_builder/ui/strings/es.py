@@ -37,6 +37,10 @@ STRINGS: dict[str, str] = {
     "library.action.rename": "Renombrar",
     "library.action.duplicate": "Duplicar",
     "library.action.delete": "Eliminar",
+    "library.sort.label": "Ordenar",
+    "library.sort.manual": "Orden propio",
+    "library.sort.updated": "Última modificación",
+    "library.sort.title": "Nombre",
 
     "editor.all_cvs": "Todos los CV",
     "editor.export_json": "Exportar JSON",
@@ -170,6 +174,7 @@ STRINGS: dict[str, str] = {
     "error.rename": "No se pudo renombrar el CV",
     "error.duplicate": "No se pudo duplicar el CV",
     "error.delete": "No se pudo eliminar el CV",
+    "error.reorder": "No se pudo guardar el orden de los CV",
     "error.import": "No se pudo importar el JSON",
     "error.export_json": "No se pudo exportar el JSON",
     "error.example": "No se pudo guardar el JSON de ejemplo",

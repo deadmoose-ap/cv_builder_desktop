@@ -29,6 +29,15 @@ def application_data_dir() -> Path:
     return base / "cv-builder"
 
 
+# How the start screen orders the library. "manual" is the order the user
+# dragged the cards into, stored as the order of `library.json` entries.
+LIBRARY_SORTS = ("manual", "updated", "title")
+DEFAULT_LIBRARY_SORT = "manual"
+# Version 2 made the entry order meaningful (manual sorting). Version 1 kept
+# entries in creation order and the screen sorted them by modification date.
+INDEX_VERSION = 2
+
+
 def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
@@ -52,7 +61,7 @@ class CVLibrary:
 
     def _read_index(self) -> dict[str, Any]:
         if not self.index_path.exists():
-            return {"version": 1, "documents": []}
+            return {"version": INDEX_VERSION, "documents": []}
         try:
             with self.index_path.open("r", encoding="utf-8") as stream:
                 index = json.load(stream)
@@ -60,7 +69,17 @@ class CVLibrary:
             raise ValueError(f"Could not read the CV library: {error}") from error
         if not isinstance(index, dict) or not isinstance(index.get("documents"), list):
             raise ValueError("The CV library index is invalid.")
+        if index.get("version", 1) < INDEX_VERSION:
+            self._migrate_index(index)
         return index
+
+    def _migrate_index(self, index: dict[str, Any]) -> None:
+        """Seed the manual order with the order a version 1 library showed."""
+        index["documents"].sort(
+            key=lambda item: str(item.get("updated_at") or ""), reverse=True
+        )
+        index["version"] = INDEX_VERSION
+        self._write_index(index)
 
     def _write_index(self, index: dict[str, Any]) -> None:
         self.root.mkdir(parents=True, exist_ok=True)
@@ -81,7 +100,7 @@ class CVLibrary:
             updated_at=str(item.get("updated_at") or ""),
         )
 
-    def list_documents(self) -> list[CVRecord]:
+    def list_documents(self, sort: str = DEFAULT_LIBRARY_SORT) -> list[CVRecord]:
         index = self._read_index()
         existing = [
             item
@@ -92,7 +111,22 @@ class CVLibrary:
             index["documents"] = existing
             self._write_index(index)
         records = [self._record_from_dict(item) for item in existing]
-        return sorted(records, key=lambda record: record.updated_at, reverse=True)
+        if sort == "updated":
+            return sorted(records, key=lambda record: record.updated_at, reverse=True)
+        if sort == "title":
+            return sorted(records, key=lambda record: record.title.casefold())
+        return records
+
+    def reorder_documents(self, document_ids: list[str]) -> None:
+        """Store a new manual order; ids left out keep their relative order."""
+        index = self._read_index()
+        by_id = {str(item.get("id")): item for item in index["documents"]}
+        ordered = [
+            by_id.pop(value) for value in dict.fromkeys(document_ids) if value in by_id
+        ]
+        remaining = [item for item in index["documents"] if str(item.get("id")) in by_id]
+        index["documents"] = ordered + remaining
+        self._write_index(index)
 
     def _unique_title(self, requested: str) -> str:
         base = requested.strip() or "Untitled CV"
@@ -119,7 +153,9 @@ class CVLibrary:
             "updated_at": timestamp,
         }
         save_document(self._document_path(document_id), data or new_document())
-        index["documents"].append(item)
+        # New, imported and duplicated CVs open the manual order, matching
+        # where they would appear when sorted by modification date.
+        index["documents"].insert(0, item)
         self._write_index(index)
         return self._record_from_dict(item)
 

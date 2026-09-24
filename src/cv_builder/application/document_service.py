@@ -11,7 +11,11 @@ from typing import Any
 
 from cv_builder.domain.model import example_document, new_document, save_document
 from cv_builder.exporters.pdf import generate_pdf
-from cv_builder.infrastructure.library import CVLibrary, CVRecord
+from cv_builder.infrastructure.library import (
+    DEFAULT_LIBRARY_SORT,
+    CVLibrary,
+    CVRecord,
+)
 
 
 class DocumentService:
@@ -22,8 +26,11 @@ class DocumentService:
 
     # --- library ---------------------------------------------------------
 
-    def list_documents(self) -> list[CVRecord]:
-        return self.library.list_documents()
+    def list_documents(self, sort: str = DEFAULT_LIBRARY_SORT) -> list[CVRecord]:
+        return self.library.list_documents(sort)
+
+    def reorder(self, document_ids: list[str]) -> None:
+        self.library.reorder_documents(document_ids)
 
     def get_record(self, document_id: str) -> CVRecord:
         return self.library.get_record(document_id)

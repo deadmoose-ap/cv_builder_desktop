@@ -38,6 +38,10 @@ STRINGS: dict[str, str] = {
     "library.action.rename": "Rename",
     "library.action.duplicate": "Duplicate",
     "library.action.delete": "Delete",
+    "library.sort.label": "Sort",
+    "library.sort.manual": "Custom order",
+    "library.sort.updated": "Last updated",
+    "library.sort.title": "Name",
     # --- editor shell ----------------------------------------------------
     "editor.all_cvs": "All CVs",
     "editor.export_json": "Export JSON",
@@ -171,6 +175,7 @@ STRINGS: dict[str, str] = {
     "error.rename": "Could not rename CV",
     "error.duplicate": "Could not duplicate CV",
     "error.delete": "Could not delete CV",
+    "error.reorder": "Could not save the CV order",
     "error.import": "Could not import JSON",
     "error.export_json": "Could not export JSON",
     "error.example": "Could not save example JSON",

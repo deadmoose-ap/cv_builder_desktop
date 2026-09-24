@@ -137,6 +137,12 @@ class CVBuilderApp(ctk.CTk):
         self.bind_all("<Control-o>", lambda _event: self.show_library())
         self.bind_all("<Command-o>", lambda _event: self.show_library())
         self.bind_all("<Escape>", self._handle_escape)
+        # Looked up per click: a language switch rebuilds the editor screen.
+        self.bind_all(
+            "<ButtonPress-1>",
+            lambda event: self.editor_view.release_title_focus(event),
+            add="+",
+        )
 
     def _handle_escape(self, _event=None):
         experience = self.editor_view.experience
@@ -155,6 +161,7 @@ class CVBuilderApp(ctk.CTk):
             self.editor_view.preview.render_document(self.collect_form())
 
     def show_library(self) -> None:
+        self.commit_title_edit()
         self._save_now()
         self.refresh_library()
         self.library_view.tkraise()
@@ -171,9 +178,29 @@ class CVBuilderApp(ctk.CTk):
 
     # --- library commands ------------------------------------------------
 
+    @property
+    def library_sort(self) -> str:
+        return self.settings.library_sort
+
+    def set_library_sort(self, sort: str) -> None:
+        self.settings = self.settings_store.set_library_sort(sort)
+        self.refresh_library()
+
+    def reorder_documents(self, document_ids: list[str]) -> None:
+        """Persist the order the cards were dragged into.
+
+        The screen already shows that order, so nothing is redrawn — unless
+        writing it failed, in which case the stored order is shown again.
+        """
+        try:
+            self.service.reorder(document_ids)
+        except Exception as error:
+            messagebox.showerror(self.t("error.reorder"), str(error), parent=self)
+            self.refresh_library()
+
     def refresh_library(self) -> None:
         try:
-            records = self.service.list_documents()
+            records = self.service.list_documents(self.library_sort)
         except Exception as error:
             records = []
             messagebox.showerror(
@@ -461,6 +488,7 @@ class CVBuilderApp(ctk.CTk):
             return False
 
     def _close_application(self) -> None:
+        self.commit_title_edit()
         self._save_now()
         self.destroy()
 

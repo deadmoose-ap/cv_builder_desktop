@@ -37,6 +37,10 @@ STRINGS: dict[str, str] = {
     "library.action.rename": "名前を変更",
     "library.action.duplicate": "複製",
     "library.action.delete": "削除",
+    "library.sort.label": "並べ替え",
+    "library.sort.manual": "カスタム順",
+    "library.sort.updated": "更新日順",
+    "library.sort.title": "名前順",
 
     "editor.all_cvs": "すべての履歴書",
     "editor.export_json": "JSON を書き出す",
@@ -172,6 +176,7 @@ STRINGS: dict[str, str] = {
     "error.rename": "名前を変更できませんでした",
     "error.duplicate": "複製できませんでした",
     "error.delete": "削除できませんでした",
+    "error.reorder": "履歴書の順序を保存できませんでした",
     "error.import": "JSON を読み込めませんでした",
     "error.export_json": "JSON を書き出せませんでした",
     "error.example": "サンプル JSON を保存できませんでした",

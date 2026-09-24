@@ -37,6 +37,10 @@ STRINGS: dict[str, str] = {
     "library.action.rename": "重命名",
     "library.action.duplicate": "复制",
     "library.action.delete": "删除",
+    "library.sort.label": "排序",
+    "library.sort.manual": "自定义顺序",
+    "library.sort.updated": "最近更新",
+    "library.sort.title": "名称",
 
     "editor.all_cvs": "全部简历",
     "editor.export_json": "导出 JSON",
@@ -170,6 +174,7 @@ STRINGS: dict[str, str] = {
     "error.rename": "无法重命名简历",
     "error.duplicate": "无法复制简历",
     "error.delete": "无法删除简历",
+    "error.reorder": "无法保存简历顺序",
     "error.import": "无法导入 JSON",
     "error.export_json": "无法导出 JSON",
     "error.example": "无法保存示例 JSON",

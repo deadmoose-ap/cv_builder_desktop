@@ -3,9 +3,13 @@ from __future__ import annotations
 
 from datetime import datetime
 
+import tkinter as tk
+
 import customtkinter as ctk
 
-from cv_builder.ui.components.fields import card
+from cv_builder.infrastructure.library import LIBRARY_SORTS
+from cv_builder.ui.components.drag_reorder import DragReorder
+from cv_builder.ui.components.fields import card, option_menu
 from cv_builder.ui.components.scrollable import AutoHideScrollableFrame
 from cv_builder.ui.theme import COLORS, button
 
@@ -26,6 +30,7 @@ class LibraryScreen(ctk.CTkFrame):
         self.controller = controller
         self.fonts = controller.fonts
         self.t = controller.t
+        self.reorder: DragReorder | None = None
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(1, weight=1)
         self._build_header()
@@ -93,13 +98,17 @@ class LibraryScreen(ctk.CTkFrame):
             text_color=COLORS["muted"],
             anchor="w",
         ).grid(row=0, column=0, sticky="w", padx=44, pady=(34, 0))
+        title_row = ctk.CTkFrame(content, fg_color="transparent")
+        title_row.grid(row=1, column=0, sticky="ew", padx=(44, 52), pady=(5, 20))
+        title_row.grid_columnconfigure(0, weight=1)
         ctk.CTkLabel(
-            content,
+            title_row,
             text=self.t("library.title"),
             font=self.fonts.page_title,
             text_color=COLORS["text"],
             anchor="w",
-        ).grid(row=1, column=0, sticky="w", padx=44, pady=(5, 20))
+        ).grid(row=0, column=0, sticky="w")
+        self._build_sort_menu(title_row)
 
         self.scroll = AutoHideScrollableFrame(
             content,
@@ -112,11 +121,50 @@ class LibraryScreen(ctk.CTkFrame):
         self.scroll.grid(row=2, column=0, sticky="nsew", padx=36, pady=(0, 32))
         self.scroll.grid_columnconfigure(0, weight=1)
 
+    def _build_sort_menu(self, parent) -> None:
+        sort = ctk.CTkFrame(parent, fg_color="transparent")
+        sort.grid(row=0, column=1, sticky="e")
+        ctk.CTkLabel(
+            sort,
+            text=self.t("library.sort.label"),
+            font=self.fonts.small,
+            text_color=COLORS["muted"],
+        ).pack(side="left", padx=(0, 10))
+        self._sort_labels = {
+            key: self.t(f"library.sort.{key}") for key in LIBRARY_SORTS
+        }
+        self.sort_var = tk.StringVar(
+            value=self._sort_labels[self.controller.library_sort]
+        )
+        self.sort_menu = option_menu(
+            sort,
+            self.fonts,
+            values=list(self._sort_labels.values()),
+            variable=self.sort_var,
+            command=self._on_sort_selected,
+            width=200,
+        )
+        self.sort_menu.pack(side="left")
+
+    def _on_sort_selected(self, label: str) -> None:
+        key = next(key for key, text in self._sort_labels.items() if text == label)
+        self.controller.set_library_sort(key)
+
     def refresh(self, records, preview) -> None:
         """Redraw the list. `preview(id)` returns (person, completion)."""
         for child in self.scroll.winfo_children():
             child.destroy()
         self.scroll.grid_columnconfigure(0, weight=1)
+        self.sort_var.set(self._sort_labels[self.controller.library_sort])
+        # Only the user's own order can be changed by hand; the other two
+        # are derived from the data and would snap the card straight back.
+        self.reorder = None
+        if self.controller.library_sort == "manual":
+            self.reorder = DragReorder(
+                on_drop=self.controller.reorder_documents,
+                on_drag_state=self._style_dragged_card,
+                canvas=self.scroll._parent_canvas,
+            )
 
         if not records:
             self._render_empty_state()
@@ -125,6 +173,13 @@ class LibraryScreen(ctk.CTkFrame):
         for row, record in enumerate(records):
             self._render_card(row, record, *preview(record.id))
         self.scroll._schedule_scrollbar_check()
+
+    @staticmethod
+    def _style_dragged_card(document_card, dragging: bool) -> None:
+        document_card.configure(
+            border_color=COLORS["accent"] if dragging else COLORS["border"],
+            border_width=2 if dragging else 1,
+        )
 
     def _render_empty_state(self) -> None:
         empty = card(self.scroll)
@@ -155,25 +210,47 @@ class LibraryScreen(ctk.CTkFrame):
     def _render_card(self, row: int, record, person: str, completion: int) -> None:
         document_card = card(self.scroll)
         document_card.grid(row=row, column=0, sticky="ew", padx=(8, 16), pady=(0, 10))
-        document_card.grid_columnconfigure(0, weight=1)
+        document_card.grid_columnconfigure(1, weight=1)
+        handles = []
+        if self.reorder is not None:
+            grip = ctk.CTkLabel(
+                document_card,
+                text="⠿",
+                width=18,
+                font=self.fonts.gear,
+                text_color=COLORS["muted"],
+                cursor="fleur",
+            )
+            grip.grid(row=0, column=0, sticky="ns", padx=(12, 0), pady=2)
+            grip.bind("<Enter>", lambda _e: grip.configure(text_color=COLORS["text"]))
+            grip.bind("<Leave>", lambda _e: grip.configure(text_color=COLORS["muted"]))
+            handles.append(grip)
         details = ctk.CTkFrame(document_card, fg_color="transparent")
-        details.grid(row=0, column=0, sticky="ew", padx=20, pady=17)
+        details.grid(
+            row=0,
+            column=1,
+            sticky="ew",
+            padx=(8 if handles else 20, 20),
+            pady=17,
+        )
         details.grid_columnconfigure(0, weight=1)
-        ctk.CTkLabel(
+        title = ctk.CTkLabel(
             details,
             text=record.title,
             font=self.fonts.card_title,
             text_color=COLORS["text"],
             anchor="w",
-        ).grid(row=0, column=0, sticky="w")
-        ctk.CTkLabel(
+        )
+        title.grid(row=0, column=0, sticky="w")
+        meta = ctk.CTkLabel(
             details,
             text=self.t("library.card_meta", person=person, percent=completion),
             font=self.fonts.body,
             text_color=COLORS["muted"],
             anchor="w",
-        ).grid(row=1, column=0, sticky="w", pady=(4, 0))
-        ctk.CTkLabel(
+        )
+        meta.grid(row=1, column=0, sticky="w", pady=(4, 0))
+        updated = ctk.CTkLabel(
             details,
             text=self.t(
                 "library.card_updated",
@@ -184,10 +261,15 @@ class LibraryScreen(ctk.CTkFrame):
             font=self.fonts.small,
             text_color=COLORS["muted"],
             anchor="w",
-        ).grid(row=2, column=0, sticky="w", pady=(4, 0))
+        )
+        updated.grid(row=2, column=0, sticky="w", pady=(4, 0))
+        if self.reorder is not None:
+            # The whole text area drags too; the grip is just the visible cue.
+            handles += [document_card, details, title, meta, updated]
+            self.reorder.add(record.id, document_card, handles)
 
         actions = ctk.CTkFrame(document_card, fg_color="transparent")
-        actions.grid(row=0, column=1, sticky="e", padx=(8, 16))
+        actions.grid(row=0, column=2, sticky="e", padx=(8, 16))
         specs = (
             ("open", self.controller.open_library_document, "secondary", 62, (0, 4)),
             ("pdf", self.controller.export_document_pdf, "secondary", 52, (0, 4)),

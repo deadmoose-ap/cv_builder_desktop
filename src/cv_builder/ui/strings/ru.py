@@ -37,6 +37,10 @@ STRINGS: dict[str, str] = {
     "library.action.rename": "Переименовать",
     "library.action.duplicate": "Дублировать",
     "library.action.delete": "Удалить",
+    "library.sort.label": "Сортировка",
+    "library.sort.manual": "Свой порядок",
+    "library.sort.updated": "По дате изменения",
+    "library.sort.title": "По названию",
 
     "editor.all_cvs": "Все резюме",
     "editor.export_json": "Экспорт JSON",
@@ -170,6 +174,7 @@ STRINGS: dict[str, str] = {
     "error.rename": "Не удалось переименовать резюме",
     "error.duplicate": "Не удалось дублировать резюме",
     "error.delete": "Не удалось удалить резюме",
+    "error.reorder": "Не удалось сохранить порядок резюме",
     "error.import": "Не удалось импортировать JSON",
     "error.export_json": "Не удалось экспортировать JSON",
     "error.example": "Не удалось сохранить пример JSON",

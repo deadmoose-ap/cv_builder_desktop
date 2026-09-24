@@ -37,6 +37,10 @@ STRINGS: dict[str, str] = {
     "library.action.rename": "Umbenennen",
     "library.action.duplicate": "Duplizieren",
     "library.action.delete": "Löschen",
+    "library.sort.label": "Sortierung",
+    "library.sort.manual": "Eigene Reihenfolge",
+    "library.sort.updated": "Zuletzt geändert",
+    "library.sort.title": "Name",
 
     "editor.all_cvs": "Alle Lebensläufe",
     "editor.export_json": "JSON exportieren",
@@ -170,6 +174,7 @@ STRINGS: dict[str, str] = {
     "error.rename": "Lebenslauf konnte nicht umbenannt werden",
     "error.duplicate": "Lebenslauf konnte nicht dupliziert werden",
     "error.delete": "Lebenslauf konnte nicht gelöscht werden",
+    "error.reorder": "Reihenfolge konnte nicht gespeichert werden",
     "error.import": "JSON konnte nicht importiert werden",
     "error.export_json": "JSON konnte nicht exportiert werden",
     "error.example": "Beispiel-JSON konnte nicht gespeichert werden",

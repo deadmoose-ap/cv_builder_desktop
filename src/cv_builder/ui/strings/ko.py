@@ -37,6 +37,10 @@ STRINGS: dict[str, str] = {
     "library.action.rename": "이름 변경",
     "library.action.duplicate": "복제",
     "library.action.delete": "삭제",
+    "library.sort.label": "정렬",
+    "library.sort.manual": "사용자 지정 순서",
+    "library.sort.updated": "최근 수정순",
+    "library.sort.title": "이름순",
 
     "editor.all_cvs": "모든 이력서",
     "editor.export_json": "JSON 내보내기",
@@ -170,6 +174,7 @@ STRINGS: dict[str, str] = {
     "error.rename": "이름을 변경할 수 없습니다",
     "error.duplicate": "복제할 수 없습니다",
     "error.delete": "삭제할 수 없습니다",
+    "error.reorder": "이력서 순서를 저장할 수 없습니다",
     "error.import": "JSON을 가져올 수 없습니다",
     "error.export_json": "JSON을 내보낼 수 없습니다",
     "error.example": "예제 JSON을 저장할 수 없습니다",
