@@ -1,6 +1,7 @@
 """Static checks for the Windows release assets."""
 
 from pathlib import Path
+import re
 import struct
 
 
@@ -39,14 +40,22 @@ def test_windows_release_version_and_icon_are_connected():
     ).read_text(encoding="utf-8")
     build_script = (ROOT / "build_windows.ps1").read_text(encoding="utf-8")
 
-    assert "'CFBundleShortVersionString': '1.3.0'" in spec
-    assert "'CFBundleVersion': '11'" in spec
-    assert '#define MyAppVersion "1.3.0"' in installer
-    assert '#define MyAppBuildVersion "1.3.0.11"' in installer
+    # The macOS spec is the reference; the test pins that the three files
+    # agree, not a particular number, so a version bump needs no test edit.
+    version = re.search(r"'CFBundleShortVersionString': '(\d+)\.(\d+)\.(\d+)'", spec)
+    build = re.search(r"'CFBundleVersion': '(\d+)'", spec)
+    assert version and build
+    major, minor, patch = version.groups()
+    dotted = f"{major}.{minor}.{patch}"
+    number = build.group(1)
+    quad = f"({major}, {minor}, {patch}, {number})"
+
+    assert f'#define MyAppVersion "{dotted}"' in installer
+    assert f'#define MyAppBuildVersion "{dotted}.{number}"' in installer
     assert "SetupIconFile=..\\assets\\CVBuilder.ico" in installer
-    assert "filevers=(1, 3, 0, 11)" in version_info
-    assert "prodvers=(1, 3, 0, 11)" in version_info
-    assert "StringStruct('FileVersion', '1.3.0')" in version_info
-    assert "StringStruct('ProductVersion', '1.3.0')" in version_info
+    assert f"filevers={quad}" in version_info
+    assert f"prodvers={quad}" in version_info
+    assert f"StringStruct('FileVersion', '{dotted}')" in version_info
+    assert f"StringStruct('ProductVersion', '{dotted}')" in version_info
     assert '--icon "assets\\CVBuilder.ico"' in build_script
     assert '--version-file "packaging\\windows-version-info.txt"' in build_script
