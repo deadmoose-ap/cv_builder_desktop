@@ -1,6 +1,6 @@
 #define MyAppName "CV Builder"
-#define MyAppVersion "1.4.0"
-#define MyAppBuildVersion "1.4.0.12"
+#define MyAppVersion "1.4.3"
+#define MyAppBuildVersion "1.4.3.13"
 #define MyAppPublisher "CV Builder Contributors"
 #define MyAppExeName "CVBuilder.exe"
 
