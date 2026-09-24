@@ -98,5 +98,10 @@ jobs:
             dist/CVBuilder-macOS-AppleSilicon/CVBuilder-macOS-AppleSilicon.dmg
             dist/CVBuilder-macOS-Intel/CVBuilder-macOS-Intel.dmg
             dist/CVBuilder-Windows/CVBuilder-Windows-Setup.exe
-          draft: true
+          # Published straight away and marked Latest, so
+          # /releases/latest/download/<file> always serves the newest build.
+          # Runs only after every build job passed (`needs` above).
+          draft: false
+          prerelease: false
+          make_latest: "true"
           generate_release_notes: true
