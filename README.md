@@ -106,7 +106,12 @@ chmod +x build_macos.sh
 ./build_macos.sh
 ```
 
-The local output is `CVBuilder-macOS.dmg`. The automated workflow creates separate Apple Silicon and Intel installers so users can download the build matching their Mac.
+The local output is `CVBuilder-macOS.dmg`. Its Finder window is styled by
+`dmgbuild` from `packaging/dmg_settings.py`; the background
+(`assets/dmg/background.png`) is rendered by `tools/build_dmg_background.py`
+and committed, so re-run that script only when the design changes. Keep the
+background light: Finder draws icon labels dark on a background picture even
+in Dark Mode. The automated workflow creates separate Apple Silicon and Intel installers so users can download the build matching their Mac.
 
 macOS packaging requires Python with Tk 8.6 or newer; Python 3.12 with Tk 9.0
 is recommended. The build script rejects Apple's deprecated system Tk 8.5,

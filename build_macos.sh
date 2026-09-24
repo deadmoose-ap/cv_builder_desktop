@@ -15,10 +15,10 @@ else
   codesign --deep --force --sign - dist/CVBuilder.app
 fi
 
-mkdir dmg-root
-cp -R dist/CVBuilder.app dmg-root/
-ln -s /Applications dmg-root/Applications
-hdiutil create -volname "CV Builder" -srcfolder dmg-root -ov -format UDZO "$DMG_NAME"
+# Styled installer window: background, icon layout and volume icon live in
+# packaging/dmg_settings.py; the background is rendered by
+# tools/build_dmg_background.py and committed under assets/dmg/.
+"$PYTHON_BIN" -m dmgbuild -s packaging/dmg_settings.py -D app=dist/CVBuilder.app "CV Builder" "$DMG_NAME"
 
 if [ -n "${APPLE_ID:-}" ] && [ -n "${APPLE_TEAM_ID:-}" ] && [ -n "${APPLE_APP_PASSWORD:-}" ]; then
   xcrun notarytool submit "$DMG_NAME" --apple-id "$APPLE_ID" --team-id "$APPLE_TEAM_ID" --password "$APPLE_APP_PASSWORD" --wait

@@ -3,3 +3,4 @@ Pillow>=10,<13
 pyinstaller>=6.10,<7
 pytest>=8,<10
 pypdf>=4,<7
+dmgbuild>=1.6.7,<2; sys_platform == "darwin"

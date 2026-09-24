@@ -393,7 +393,7 @@ only after evaluating bundle size and platform consistency.
 | UI smoke | Tk automation + diagnostic JSON |
 | Screenshot QA | platform window capture |
 | macOS bundle | PyInstaller + spec |
-| macOS installer | codesign + hdiutil |
+| macOS installer | codesign + dmgbuild (styled Finder window) |
 | macOS trust | Developer ID + notarytool + stapler |
 | Windows bundle | PyInstaller |
 | Windows installer | Inno Setup 6 |
@@ -427,7 +427,7 @@ manual log inspection.
 - Python 3.12 with Tk 8.6+;
 - PyInstaller;
 - Xcode Command Line Tools;
-- `codesign`, `hdiutil`;
+- `codesign`, `dmgbuild` (pip, writes the DMG window layout without Finder/AppleScript);
 - for public distribution: Apple Developer Program.
 
 ### Pipeline
@@ -438,7 +438,7 @@ tests
 → .app
 → codesign
 → signature verification
-→ DMG
+→ DMG (dmgbuild: background, icon layout, volume icon)
 → notarization
 → staple
 → mount and inspect
