@@ -110,10 +110,15 @@ STRINGS: dict[str, str] = {
     "education.qualification": "Qualification and dates",
     # --- section 5: preview ----------------------------------------------
     "preview.title": "Preview",
-    "preview.subtitle": "Check every page, then set the language and sidebar colour before exporting.",
+    "preview.subtitle": "Check every page, then set the language, layout and sidebar colour before exporting.",
     "preview.sidebar_colour": "SIDEBAR COLOUR",
     "preview.cv_language": "CV LANGUAGE",
     "preview.cv_language_hint": "The language of the printed section headings.",
+    "preview.layout": "LAYOUT",
+    "preview.layout_hint": "Single column for applications through job sites and ATS; with sidebar for sending directly to a person.",
+    "preview.sidebar_colour_unused": "Not used in the single-column layout.",
+    "layout.sidebar": "With sidebar",
+    "layout.single": "Single column (ATS)",
     # --- sidebar themes --------------------------------------------------
     "theme.linkedin": "LinkedIn grey",
     "theme.olive-deep": "Deep olive",

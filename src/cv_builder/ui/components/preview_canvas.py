@@ -5,6 +5,7 @@ import tkinter as tk
 from tkinter import font as tkfont
 from typing import Any
 
+from cv_builder.domain import layouts
 from cv_builder.exporters import page_style
 from cv_builder.exporters.preview_layout import build_pages
 from cv_builder.ui.components.scrollable import touchpad_scroll_dy
@@ -120,14 +121,15 @@ class PreviewCanvas(tk.Canvas):
                 fill="#FFFFFF",
                 outline=COLORS["border"],
             )
-            self.create_rectangle(
-                left,
-                top,
-                left + page_style.SIDEBAR_WIDTH * scale,
-                top + page_height,
-                fill=page.sidebar_color,
-                outline=page.sidebar_color,
-            )
+            if not layouts.is_single(page.layout):
+                self.create_rectangle(
+                    left,
+                    top,
+                    left + page_style.SIDEBAR_WIDTH * scale,
+                    top + page_height,
+                    fill=page.sidebar_color,
+                    outline=page.sidebar_color,
+                )
             for line in page.lines:
                 size = -max(int(round(line.size * scale)), 5)
                 self.create_text(

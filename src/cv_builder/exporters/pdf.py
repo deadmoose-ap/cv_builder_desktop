@@ -14,10 +14,17 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import BaseDocTemplate, Frame, KeepTogether, PageTemplate, Paragraph, Spacer
 
-from cv_builder.domain import themes
+from cv_builder.domain import layouts, themes
 from cv_builder.domain.locales import CJK_LOCALES, is_cjk
 from cv_builder.exporters import page_style
-from cv_builder.exporters.story import Gap, Group, Para, main_story, sidebar_story
+from cv_builder.exporters.story import (
+    Gap,
+    Group,
+    Para,
+    main_story,
+    sidebar_story,
+    single_column_story,
+)
 
 
 PAGE_WIDTH, PAGE_HEIGHT = letter
@@ -205,26 +212,41 @@ def generate_pdf(data: dict[str, Any], output_path: str | Path) -> None:
                 y -= 2
         canvas.restoreState()
 
+    layout = layouts.get_layout(data.get("layout"))["key"]
+    single = layouts.is_single(layout)
+    frame_x, frame_top, frame_bottom, frame_width = page_style.frame_geometry(layout)
+    name = str(data.get("profile", {}).get("name", "") or "").strip()
     document = BaseDocTemplate(
         str(output_path),
         pagesize=letter,
-        leftMargin=MAIN_X,
-        rightMargin=34,
-        topMargin=page_style.MAIN_TOP,
-        bottomMargin=page_style.MAIN_BOTTOM,
+        leftMargin=frame_x,
+        rightMargin=PAGE_WIDTH - frame_x - frame_width,
+        topMargin=frame_top,
+        bottomMargin=frame_bottom,
+        # Without these ReportLab writes "untitled" / "anonymous", which is
+        # what a portal shows as the attachment's title.
+        title=f"{name} - CV" if name else "CV",
+        author=name,
     )
     frame = Frame(
-        MAIN_X,
-        page_style.MAIN_BOTTOM,
-        MAIN_WIDTH,
-        PAGE_HEIGHT - page_style.MAIN_TOP - page_style.MAIN_BOTTOM,
+        frame_x,
+        frame_bottom,
+        frame_width,
+        PAGE_HEIGHT - frame_top - frame_bottom,
         leftPadding=0,
         rightPadding=0,
         topPadding=0,
         bottomPadding=0,
     )
-    document.addPageTemplates([PageTemplate(id="cv", frames=[frame], onPage=page_decoration)])
-    story = flowables(main_story(data))
+    if single:
+        # Nothing is drawn outside the frame: the text layer is exactly the
+        # story, in reading order.
+        template = PageTemplate(id="cv", frames=[frame])
+        story = flowables(single_column_story(data))
+    else:
+        template = PageTemplate(id="cv", frames=[frame], onPage=page_decoration)
+        story = flowables(main_story(data))
+    document.addPageTemplates([template])
     # Keep an empty normalized document a valid one-page PDF, matching the
     # preview canvas instead of producing a zero-page ReportLab file.
     document.build(story or [Spacer(1, 1)])

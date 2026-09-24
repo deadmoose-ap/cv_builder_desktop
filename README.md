@@ -24,7 +24,11 @@ CV Builder is a local desktop application for creating a structured CV and expor
 - Import, export, and a downloadable example JSON (in Settings) for
   AI-assisted CV drafting — see below
 - Preview as the final step of the flow: every page exactly as it will print,
-  with document options (CV language, sidebar colour) in a side panel next to it
+  with document options (CV language, layout, sidebar colour) in a side panel next to it
+- Two PDF layouts per CV: the sidebar layout for sending a CV directly to a
+  person, and a single-column ATS layout for applying through job sites —
+  name, headline and contacts first, everything in one text flow, dates on
+  the same line as the role, no colour plate
 - Nine languages for the CV itself — English, Russian, German, Spanish, French,
   Japanese, Korean, Traditional and Simplified Chinese — chosen per CV in the
   preview step and stored with the document

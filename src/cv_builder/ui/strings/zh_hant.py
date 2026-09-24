@@ -109,10 +109,15 @@ STRINGS: dict[str, str] = {
     "education.qualification": "學位與時間",
 
     "preview.title": "預覽",
-    "preview.subtitle": "請檢查每一頁，並在匯出前設定語言與側欄顏色。",
+    "preview.subtitle": "請檢查每一頁，並在匯出前設定語言、版面與側欄顏色。",
     "preview.sidebar_colour": "側欄顏色",
     "preview.cv_language": "履歷語言",
     "preview.cv_language_hint": "列印出的各章節標題所用語言。",
+    "preview.layout": "版面",
+    "preview.layout_hint": "單欄適用於透過求職網站與 ATS 投遞；含側欄適用於直接寄給對方。",
+    "preview.sidebar_colour_unused": "單欄版面不使用此項。",
+    "layout.sidebar": "含側欄",
+    "layout.single": "單欄（ATS）",
 
     "theme.linkedin": "LinkedIn 灰",
     "theme.olive-deep": "深橄欖綠",

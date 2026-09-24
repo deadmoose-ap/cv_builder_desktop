@@ -74,8 +74,13 @@ preview), the *description* of the document must live outside both renderers:
 
 - `domain/themes.py` — colour themes and the contrast rule that picks light or
   dark text for a coloured plate;
-- `exporters/page_style.py` — page geometry and typography;
-- `exporters/story.py` — the ordered paragraphs, gaps and keep-together groups;
+- `domain/layouts.py` — the page layouts a document can choose (`sidebar`,
+  `single`); a layout is a document property like the theme;
+- `exporters/page_style.py` — page geometry and typography; `frame_geometry()`
+  gives both renderers the text column of each layout;
+- `exporters/story.py` — the ordered paragraphs, gaps and keep-together groups,
+  one story function per layout (`main_story` + `sidebar_story`, or
+  `single_column_story`);
 - `exporters/pdf.py` — turns the story into ReportLab flowables;
 - `exporters/preview_layout.py` — paginates the same story into canvas lines using the
   PDF font metrics, including long-word wrapping, so the preview breaks lines
@@ -84,7 +89,15 @@ preview), the *description* of the document must live outside both renderers:
   page-number footers.
 
 A regression test asserts that the preview and the exported PDF agree on the
-page count; without it the two renderers drift apart silently.
+page count, for every layout; without it the two renderers drift apart
+silently. Line breaking must mirror ReportLab exactly, including what it does
+*not* break on: ReportLab keeps U+00A0 as a non-breaking space while Python's
+`str.split()` treats it as whitespace, so the preview splits on a regex that
+excludes it.
+
+A layout meant for machine parsing (ATS) draws nothing in `onPage`: every
+character is a flowable in the frame, so the PDF text layer reads in story
+order. A `pypdf` test (dev dependency only) asserts that order.
 
 ## 4. Package structure
 
@@ -99,6 +112,7 @@ desktop_app/
 │       ├── domain/
 │       │   ├── model.py         (schema, defaults, normalization)
 │       │   ├── themes.py        (document colour themes)
+│       │   ├── layouts.py       (document page layouts)
 │       │   ├── text.py
 │       │   └── completion.py
 │       ├── application/

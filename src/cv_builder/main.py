@@ -21,7 +21,7 @@ def main() -> None:
         )
         return
     if "--smoke-test" in sys.argv:
-        from cv_builder.domain.model import new_document
+        from cv_builder.domain.model import example_document, new_document
         from cv_builder.exporters.pdf import font_for_locale, generate_pdf, register_fonts
 
         document = new_document()
@@ -38,6 +38,11 @@ def main() -> None:
                     f"No font for locale {locale}: fell back to {resolved}"
                 )
             print(f"font for {locale}: {resolved}")
+        if "--layout" in sys.argv:
+            # An empty document renders an empty page in any layout; the
+            # example fills every block the layout has to place.
+            document = {**example_document(), "locale": document["locale"]}
+            document["layout"] = sys.argv[sys.argv.index("--layout") + 1]
         generate_pdf(
             document,
             _argument_path("--smoke-test", "CVBuilder-smoke-test.pdf"),

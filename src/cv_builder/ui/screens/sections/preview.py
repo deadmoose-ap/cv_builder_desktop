@@ -1,4 +1,4 @@
-"""Section 5 — the final step: check every page and pick the sidebar colour."""
+"""Section 5 — the final step: check every page, pick the layout and colour."""
 from __future__ import annotations
 
 import tkinter as tk
@@ -6,7 +6,7 @@ from typing import Any
 
 import customtkinter as ctk
 
-from cv_builder.domain import locales, themes
+from cv_builder.domain import layouts, locales, themes
 from cv_builder.ui.components.fields import option_menu, section_header
 from cv_builder.ui.components.preview_canvas import PreviewCanvas
 from cv_builder.ui.screens.sections.base import Section
@@ -20,6 +20,23 @@ SWATCHES_PER_ROW = 4
 OPTIONS_WIDTH = 214
 
 
+# Share of the swatch colour left when the colour cannot be picked.
+DISABLED_SWATCH_OPACITY = 0.3
+
+
+def _faded(colour: str) -> str:
+    """The swatch colour blended into the page background."""
+    background = COLORS["background"]
+    channels = (
+        round(
+            int(colour[i : i + 2], 16) * DISABLED_SWATCH_OPACITY
+            + int(background[i : i + 2], 16) * (1 - DISABLED_SWATCH_OPACITY)
+        )
+        for i in (1, 3, 5)
+    )
+    return "#" + "".join(f"{value:02x}" for value in channels)
+
+
 class PreviewSection(Section):
     """Document options on the left, the rendered pages on the right."""
 
@@ -27,6 +44,8 @@ class PreviewSection(Section):
         self.theme_buttons: dict[str, ctk.CTkButton] = {}
         self.selected_theme = themes.DEFAULT_THEME
         self.selected_locale = locales.DEFAULT_LOCALE
+        self.selected_layout = layouts.DEFAULT_LAYOUT
+        self.layout_label = tk.StringVar(value=self.t(f"layout.{self.selected_layout}"))
         self.theme_label = tk.StringVar(value="")
         self.locale_label = tk.StringVar(value=locales.locale_label(None))
         self.document: dict[str, Any] | None = None
@@ -57,6 +76,7 @@ class PreviewSection(Section):
         options.grid_propagate(False)
         options.grid_columnconfigure(0, weight=1)
         self._build_locale_block(options)
+        self._build_layout_block(options)
         self._build_theme_block(options)
 
     def _caption(self, parent, row: int, label: str, hint, pady) -> None:
@@ -99,16 +119,35 @@ class PreviewSection(Section):
         )
         self.locale_menu.grid(row=2, column=0, sticky="ew")
 
-    def _build_theme_block(self, parent) -> None:
+    def _build_layout_block(self, parent) -> None:
+        """Sidebar for a human reader, one column for ATS portals."""
         self._caption(
             parent,
             3,
+            self.t("preview.layout"),
+            self.t("preview.layout_hint"),
+            (26, 0),
+        )
+        self.layout_menu = option_menu(
+            parent,
+            self.fonts,
+            values=[self.t(f"layout.{layout['key']}") for layout in layouts.LAYOUTS],
+            variable=self.layout_label,
+            command=self._on_layout_selected,
+            width=OPTIONS_WIDTH,
+        )
+        self.layout_menu.grid(row=5, column=0, sticky="ew")
+
+    def _build_theme_block(self, parent) -> None:
+        self._caption(
+            parent,
+            6,
             self.t("preview.sidebar_colour"),
             self.theme_label,
             (26, 0),
         )
         swatches = ctk.CTkFrame(parent, fg_color="transparent")
-        swatches.grid(row=5, column=0, sticky="w")
+        swatches.grid(row=8, column=0, sticky="w")
         for index, theme in enumerate(themes.SIDEBAR_THEMES):
             swatch = ctk.CTkButton(
                 swatches,
@@ -129,6 +168,12 @@ class PreviewSection(Section):
                 pady=(0, SWATCH_GAP),
             )
             self.theme_buttons[theme["key"]] = swatch
+
+    def _on_layout_selected(self, label: str) -> None:
+        for layout in layouts.LAYOUTS:
+            if self.t(f"layout.{layout['key']}") == label:
+                self.select_layout(layout["key"])
+                return
 
     def _on_locale_selected(self, label: str) -> None:
         for locale in locales.LOCALES:
@@ -170,6 +215,31 @@ class PreviewSection(Section):
             self.on_change()
         self._redraw()
 
+    def select_layout(self, key: str) -> None:
+        """Switch between the sidebar layout and the single-column ATS one."""
+        self._highlight_layout(key)
+        if self.document is not None and self.document.get("layout") != key:
+            self.document["layout"] = key
+            self.on_change()
+        self._redraw()
+
+    def _highlight_layout(self, key: str) -> None:
+        self.selected_layout = key
+        self.layout_label.set(self.t(f"layout.{key}"))
+        # The single-column layout is monochrome: the colour stays stored in
+        # the document for the sidebar layout, but cannot be picked here.
+        single = layouts.is_single(key)
+        for theme in themes.SIDEBAR_THEMES:
+            # A disabled CTkButton keeps its full colour, so the swatches are
+            # faded towards the page background to read as unavailable.
+            colour = _faded(theme["color"]) if single else theme["color"]
+            self.theme_buttons[theme["key"]].configure(
+                state="disabled" if single else "normal",
+                fg_color=colour,
+                hover_color=colour,
+            )
+        self._highlight(self.selected_theme)
+
     def _highlight_locale(self, code: str) -> None:
         self.selected_locale = code
         self.locale_label.set(locales.locale_label(code))
@@ -178,11 +248,16 @@ class PreviewSection(Section):
         self.selected_theme = key
         # Colour names are interface copy, so they follow the interface
         # language rather than the CV's own locale.
-        self.theme_label.set(self.t(f"theme.{key}"))
+        single = layouts.is_single(self.selected_layout)
+        self.theme_label.set(
+            self.t("preview.sidebar_colour_unused") if single else self.t(f"theme.{key}")
+        )
         for theme_key, swatch in self.theme_buttons.items():
             swatch.configure(
                 border_color=(
-                    COLORS["accent"] if theme_key == key else COLORS["background"]
+                    COLORS["accent"]
+                    if theme_key == key and not single
+                    else COLORS["background"]
                 )
             )
 
@@ -190,12 +265,14 @@ class PreviewSection(Section):
         self.document = data
         self._highlight(themes.get_theme(data.get("theme"))["key"])
         self._highlight_locale(locales.get_locale(data.get("locale"))["code"])
+        self._highlight_layout(layouts.get_layout(data.get("layout"))["key"])
 
     def render_document(self, data: dict[str, Any]) -> None:
         """Draw the pages for the document as the form currently holds it."""
         self.document = data
         self._highlight(themes.get_theme(data.get("theme"))["key"])
         self._highlight_locale(locales.get_locale(data.get("locale"))["code"])
+        self._highlight_layout(layouts.get_layout(data.get("layout"))["key"])
         self.update_idletasks()
         self._redraw()
 

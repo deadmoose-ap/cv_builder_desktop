@@ -129,6 +129,7 @@ def main() -> None:
         ("education", "04-education"),
         ("experience-editor", "05-experience-editor"),
         ("preview", "06-preview"),
+        ("preview-single", "07-preview-single"),
     ]
     position = 0
 
@@ -155,6 +156,8 @@ def main() -> None:
             sample = library.create_document("Preview Sample CV", example_document())
             app.open_library_document(sample.id)
             app.show_section("preview")
+        elif state == "preview-single":
+            app.editor_view.preview.select_layout("single")
         else:
             if app.current_document_id is None:
                 app.open_library_document(record.id)

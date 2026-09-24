@@ -111,10 +111,15 @@ STRINGS: dict[str, str] = {
     "education.qualification": "学位・在学期間",
 
     "preview.title": "プレビュー",
-    "preview.subtitle": "全ページを確認し、書き出す前に言語とサイドバーの色を設定してください。",
+    "preview.subtitle": "全ページを確認し、書き出す前に言語、レイアウト、サイドバーの色を設定してください。",
     "preview.sidebar_colour": "サイドバーの色",
     "preview.cv_language": "履歴書の言語",
     "preview.cv_language_hint": "印刷されるセクション見出しの言語です。",
+    "preview.layout": "レイアウト",
+    "preview.layout_hint": "1 列は求人サイトや ATS 経由の応募向け、サイドバー付きは担当者へ直接送る場合向けです。",
+    "preview.sidebar_colour_unused": "1 列レイアウトでは使用されません。",
+    "layout.sidebar": "サイドバー付き",
+    "layout.single": "1 列（ATS）",
 
     "theme.linkedin": "LinkedIn グレー",
     "theme.olive-deep": "ダークオリーブ",

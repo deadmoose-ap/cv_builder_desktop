@@ -6,19 +6,32 @@ exporter, so the preview wraps text where the exported document wraps it.
 """
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from typing import Any
 
 from reportlab.pdfbase import pdfmetrics
 
-from cv_builder.domain import themes
+from cv_builder.domain import layouts, themes
 from cv_builder.domain.locales import is_cjk
 from cv_builder.exporters import page_style
-from cv_builder.exporters.story import Gap, Group, Item, Para, main_story, sidebar_story
+from cv_builder.exporters.story import (
+    Gap,
+    Group,
+    Item,
+    Para,
+    main_story,
+    sidebar_story,
+    single_column_story,
+)
 from cv_builder.exporters.pdf import bold_font_for_locale, register_fonts
 
 
 FONT_NAME = "CVRegular"
+# ReportLab breaks lines on whitespace *except* the non-breaking space, while
+# `str.split()` breaks on it too. Splitting the same way keeps a skill glued
+# with U+00A0 on one line in the preview exactly as in the PDF.
+_BREAKABLE_SPACE = re.compile(r"[^\S\u00a0]+")
 
 
 @dataclass(frozen=True)
@@ -37,6 +50,7 @@ class Line:
 @dataclass
 class Page:
     sidebar_color: str
+    layout: str = layouts.DEFAULT_LAYOUT
     lines: list[Line] = field(default_factory=list)
 
 
@@ -84,7 +98,11 @@ def _wrap(
             remainder = remainder[len(fitted) :]
 
     for raw in text.split("\n"):
-        units = list(raw.strip()) if cjk else raw.split()
+        units = (
+            list(raw.strip())
+            if cjk
+            else [unit for unit in _BREAKABLE_SPACE.split(raw) if unit]
+        )
         if not units:
             result.append((left, ""))
             continue
@@ -155,8 +173,10 @@ class _Flow:
         font: str = FONT_NAME,
         bold_font: str | None = None,
         cjk: bool = False,
+        layout: str = layouts.DEFAULT_LAYOUT,
     ):
         self.sidebar_color = sidebar_color
+        self.layout = layout
         self.font = font
         self.bold_font = bold_font or font
         self.cjk = cjk
@@ -164,7 +184,7 @@ class _Flow:
         self.bottom = bottom
         self.x = x
         self.width = width
-        self.pages: list[Page] = [Page(sidebar_color)]
+        self.pages: list[Page] = [Page(sidebar_color, layout)]
         self.y = top
         # ReportLab drops a flowable's space_before at the top of a frame and
         # otherwise overlaps it with the previous flowable's space_after
@@ -178,7 +198,7 @@ class _Flow:
         return self.pages[-1]
 
     def _new_page(self) -> None:
-        self.pages.append(Page(self.sidebar_color))
+        self.pages.append(Page(self.sidebar_color, self.layout))
         self.y = self.top
         self.at_top = True
         self.previous_space_after = 0.0
@@ -280,16 +300,23 @@ def build_pages(data: dict[str, Any]) -> list[Page]:
     theme = themes.get_theme(data.get("theme"))
     sidebar_color = theme["color"]
 
+    layout = layouts.get_layout(data.get("layout"))["key"]
+    x, top, bottom, width = page_style.frame_geometry(layout)
     flow = _Flow(
         sidebar_color,
-        page_style.MAIN_TOP,
-        page_style.PAGE_HEIGHT - page_style.MAIN_BOTTOM,
-        page_style.MAIN_X,
-        page_style.MAIN_WIDTH,
+        top,
+        page_style.PAGE_HEIGHT - bottom,
+        x,
+        width,
         font,
         bold_font,
         cjk,
+        layout,
     )
+    if layouts.is_single(layout):
+        flow.add(single_column_story(data))
+        return flow.pages
+
     flow.add(main_story(data))
     pages = flow.pages
 

@@ -109,10 +109,15 @@ STRINGS: dict[str, str] = {
     "education.qualification": "학위 및 기간",
 
     "preview.title": "미리보기",
-    "preview.subtitle": "모든 페이지를 확인한 뒤, 내보내기 전에 언어와 사이드바 색상을 설정하세요.",
+    "preview.subtitle": "모든 페이지를 확인한 뒤, 내보내기 전에 언어, 레이아웃, 사이드바 색상을 설정하세요.",
     "preview.sidebar_colour": "사이드바 색상",
     "preview.cv_language": "이력서 언어",
     "preview.cv_language_hint": "인쇄되는 섹션 제목의 언어입니다.",
+    "preview.layout": "레이아웃",
+    "preview.layout_hint": "단일 열은 채용 사이트와 ATS를 통한 지원용, 사이드바형은 담당자에게 직접 보낼 때 사용합니다.",
+    "preview.sidebar_colour_unused": "단일 열 레이아웃에서는 사용되지 않습니다.",
+    "layout.sidebar": "사이드바형",
+    "layout.single": "단일 열 (ATS)",
 
     "theme.linkedin": "LinkedIn 그레이",
     "theme.olive-deep": "다크 올리브",

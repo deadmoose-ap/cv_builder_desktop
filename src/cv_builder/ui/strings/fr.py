@@ -109,10 +109,15 @@ STRINGS: dict[str, str] = {
     "education.qualification": "Diplôme et période",
 
     "preview.title": "Aperçu",
-    "preview.subtitle": "Vérifiez chaque page, puis choisissez la langue et la couleur de la barre latérale avant d’exporter.",
+    "preview.subtitle": "Vérifiez chaque page, puis choisissez la langue, la mise en page et la couleur de la barre latérale avant d’exporter.",
     "preview.sidebar_colour": "COULEUR DE LA BARRE LATÉRALE",
     "preview.cv_language": "LANGUE DU CV",
     "preview.cv_language_hint": "La langue des titres de section imprimés.",
+    "preview.layout": "MISE EN PAGE",
+    "preview.layout_hint": "Une colonne pour postuler via les sites d’emploi et les ATS ; avec barre latérale pour l’envoyer directement à une personne.",
+    "preview.sidebar_colour_unused": "Non utilisée dans la mise en page à une colonne.",
+    "layout.sidebar": "Avec barre latérale",
+    "layout.single": "Une colonne (ATS)",
 
     "theme.linkedin": "Gris LinkedIn",
     "theme.olive-deep": "Olive foncé",

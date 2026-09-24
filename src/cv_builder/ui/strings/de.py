@@ -109,10 +109,15 @@ STRINGS: dict[str, str] = {
     "education.qualification": "Abschluss und Zeitraum",
 
     "preview.title": "Vorschau",
-    "preview.subtitle": "Prüfen Sie jede Seite und legen Sie vor dem Export Sprache und Seitenleistenfarbe fest.",
+    "preview.subtitle": "Prüfen Sie jede Seite und legen Sie vor dem Export Sprache, Layout und Seitenleistenfarbe fest.",
     "preview.sidebar_colour": "FARBE DER SEITENLEISTE",
     "preview.cv_language": "SPRACHE DES LEBENSLAUFS",
     "preview.cv_language_hint": "Die Sprache der gedruckten Abschnittsüberschriften.",
+    "preview.layout": "LAYOUT",
+    "preview.layout_hint": "Einspaltig für Bewerbungen über Jobportale und ATS; mit Seitenleiste für den direkten Versand an eine Person.",
+    "preview.sidebar_colour_unused": "Wird im einspaltigen Layout nicht verwendet.",
+    "layout.sidebar": "Mit Seitenleiste",
+    "layout.single": "Einspaltig (ATS)",
 
     "theme.linkedin": "LinkedIn-Grau",
     "theme.olive-deep": "Dunkles Oliv",

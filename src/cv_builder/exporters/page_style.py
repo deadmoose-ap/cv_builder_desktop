@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from cv_builder.domain.layouts import is_single
 from cv_builder.domain.themes import TEXT_DARK, sidebar_palette
 
 
@@ -21,12 +22,22 @@ MAIN_BOTTOM = 38.0
 SIDEBAR_X = 22.0
 SIDEBAR_TOP = 43.0
 SIDEBAR_TEXT_WIDTH = 132.0
+# Single-column (ATS) layout: symmetric side margins, the same vertical rhythm
+# as the main column of the sidebar layout.
+SINGLE_X = 48.0
+SINGLE_WIDTH = PAGE_WIDTH - 2 * SINGLE_X
 
 # Style name -> size, leading, spacing, colour role and indents.
 STYLES: dict[str, dict[str, Any]] = {
     "name": {"size": 28, "leading": 32, "space_after": 7, "color": "heading"},
     "headline": {"size": 12.6, "leading": 15.5, "space_after": 2, "color": "body"},
     "location": {"size": 12, "leading": 15, "space_after": 20, "color": "muted"},
+    # Single-column layout only: the contact line and the portfolio links under
+    # it, and the skills/languages paragraphs. Contacts use the body colour —
+    # they are data a parser and a recruiter must read, not decoration.
+    "contact": {"size": 10.5, "leading": 14, "space_after": 2, "color": "body"},
+    "portfolio": {"size": 10, "leading": 13, "space_after": 1, "color": "meta"},
+    "inline": {"size": 10.5, "leading": 15.1, "space_after": 9, "color": "body"},
     "section": {
         "size": 17,
         "leading": 21,
@@ -82,6 +93,13 @@ STYLES: dict[str, dict[str, Any]] = {
     },
 }
 SIDEBAR_STYLES = ("side_head", "side_body", "side_bullet")
+
+
+def frame_geometry(layout: str | None) -> tuple[float, float, float, float]:
+    """(x, top, bottom, width) of the text column the story flows through."""
+    if is_single(layout):
+        return SINGLE_X, MAIN_TOP, MAIN_BOTTOM, SINGLE_WIDTH
+    return MAIN_X, MAIN_TOP, MAIN_BOTTOM, MAIN_WIDTH
 
 
 def style(name: str) -> dict[str, Any]:

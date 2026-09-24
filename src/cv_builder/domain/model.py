@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from cv_builder.domain.dates import parse_legacy_range
+from cv_builder.domain.layouts import DEFAULT_LAYOUT, get_layout
 from cv_builder.domain.locales import DEFAULT_LOCALE, get_locale
 from cv_builder.domain.themes import DEFAULT_THEME, get_theme
 
@@ -72,6 +73,7 @@ EXAMPLE_DATA: dict[str, Any] = {
     },
     "theme": DEFAULT_THEME,
     "locale": DEFAULT_LOCALE,
+    "layout": DEFAULT_LAYOUT,
 }
 
 DEFAULT_DATA: dict[str, Any] = {
@@ -95,6 +97,7 @@ DEFAULT_DATA: dict[str, Any] = {
     },
     "theme": DEFAULT_THEME,
     "locale": DEFAULT_LOCALE,
+    "layout": DEFAULT_LAYOUT,
 }
 
 
@@ -224,12 +227,13 @@ def normalize_document(data: dict[str, Any]) -> dict[str, Any]:
             if key in normalized["education"]
         }
     )
-    # Optional keys: documents written before themes or locales existed fall
-    # back silently. The experience section is the one part that really changed
+    # Optional keys: documents written before themes, locales or layouts
+    # existed fall back silently. The experience section is the one part that really changed
     # shape, so it carries a version — `_normalize_entry` detects and upgrades
     # schema-1 entries on both load and import.
     normalized["theme"] = get_theme(data.get("theme"))["key"]
     normalized["locale"] = get_locale(data.get("locale"))["code"]
+    normalized["layout"] = get_layout(data.get("layout"))["key"]
     normalized["schema_version"] = SCHEMA_VERSION
     return normalized
 

@@ -109,10 +109,15 @@ STRINGS: dict[str, str] = {
     "education.qualification": "学位与时间",
 
     "preview.title": "预览",
-    "preview.subtitle": "请检查每一页，并在导出前设置语言和侧栏颜色。",
+    "preview.subtitle": "请检查每一页，并在导出前设置语言、版式和侧栏颜色。",
     "preview.sidebar_colour": "侧栏颜色",
     "preview.cv_language": "简历语言",
     "preview.cv_language_hint": "打印出的各章节标题所用语言。",
+    "preview.layout": "版式",
+    "preview.layout_hint": "单栏适用于通过招聘网站和 ATS 投递；带侧栏适用于直接发送给对方。",
+    "preview.sidebar_colour_unused": "单栏版式不使用此项。",
+    "layout.sidebar": "带侧栏",
+    "layout.single": "单栏（ATS）",
 
     "theme.linkedin": "LinkedIn 灰",
     "theme.olive-deep": "深橄榄绿",

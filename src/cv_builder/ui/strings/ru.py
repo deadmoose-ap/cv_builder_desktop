@@ -109,10 +109,15 @@ STRINGS: dict[str, str] = {
     "education.qualification": "Квалификация и годы",
 
     "preview.title": "Просмотр",
-    "preview.subtitle": "Проверьте все страницы, затем задайте язык и цвет сайдбара перед экспортом.",
+    "preview.subtitle": "Проверьте все страницы, затем задайте язык, макет и цвет сайдбара перед экспортом.",
     "preview.sidebar_colour": "ЦВЕТ САЙДБАРА",
     "preview.cv_language": "ЯЗЫК РЕЗЮМЕ",
     "preview.cv_language_hint": "Язык печатных заголовков разделов.",
+    "preview.layout": "МАКЕТ",
+    "preview.layout_hint": "Одна колонка — для откликов через сайты и ATS; с сайдбаром — для отправки напрямую человеку.",
+    "preview.sidebar_colour_unused": "Не используется в одноколоночном макете.",
+    "layout.sidebar": "С сайдбаром",
+    "layout.single": "Одна колонка (ATS)",
 
     "theme.linkedin": "Серый LinkedIn",
     "theme.olive-deep": "Тёмная олива",
